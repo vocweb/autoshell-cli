@@ -22,6 +22,7 @@ import { registerValidateCommand } from './cli-commands/validate.js';
 import { registerAddCommand } from './cli-commands/add.js';
 import { registerRemoveCommand } from './cli-commands/remove.js';
 import { registerMigrateCommand } from './cli-commands/migrate.js';
+import { registerHubCommand } from './cli-commands/hub.js';
 
 const program = new Command();
 
@@ -46,6 +47,7 @@ registerAddCommand(program);
 registerRemoveCommand(program);
 registerMigrateCommand(program);
 
-// Hub commands will be registered in Phase 13
+// Hub commands (Phase 13)
+registerHubCommand(program);
 
 program.parse();
