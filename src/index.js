@@ -10,6 +10,12 @@
  */
 
 import { Command } from 'commander';
+import { registerInstallCommand } from './cli-commands/install.js';
+import { registerUninstallCommand } from './cli-commands/uninstall.js';
+import { registerListCommand } from './cli-commands/list.js';
+import { registerStatusCommand } from './cli-commands/status.js';
+import { registerRunCommand } from './cli-commands/run.js';
+import { registerLogsCommand } from './cli-commands/logs.js';
 
 const program = new Command();
 
@@ -18,9 +24,14 @@ program
   .description('Cross-platform CLI for managing scheduled shell command sets')
   .version('0.1.0');
 
-// Commands will be registered in subsequent phases:
-// Phase 05: install, uninstall, list, status, run, logs
-// Phase 12: create, export, validate, add, remove, migrate
-// Phase 13: hub search, hub install, hub publish, hub update
+// Core commands (Phase 05)
+registerInstallCommand(program);
+registerUninstallCommand(program);
+registerListCommand(program);
+registerStatusCommand(program);
+registerRunCommand(program);
+registerLogsCommand(program);
+
+// Advanced commands will be registered in Phase 12+13
 
 program.parse();
