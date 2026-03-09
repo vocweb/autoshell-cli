@@ -1,0 +1,10 @@
+# AutoShell — Minimal configuration example
+# Only required fields are specified; defaults apply for the rest.
+
+records:
+  - name: "Hello World"
+    schedule:
+      type: daily
+      time: "08:00"
+    commands:
+      - echo "Hello from AutoShell!"
