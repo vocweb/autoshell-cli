@@ -14,6 +14,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import chalk from 'chalk';
+import inquirer from 'inquirer';
 import { paths, ensureDirs } from '../../utils/paths.js';
 import { taskId } from '../../utils/task-id.js';
 import { runWizardPrompts } from './wizard-prompts.js';
@@ -70,16 +71,26 @@ async function runCreate(options) {
 
   console.log(chalk.green(`\n✓ Saved to: ${outputPath}`));
 
-  if (options.edit) {
-    // Open in editor immediately; CLI returns without waiting for editor to close
+  let shouldEdit = options.edit;
+
+  if (!shouldEdit) {
+    // Prompt user to open editor now
+    const { openNow } = await inquirer.prompt({
+      type: 'confirm',
+      name: 'openNow',
+      message: 'Open in editor now?',
+      default: true,
+    });
+    shouldEdit = openNow;
+  }
+
+  if (shouldEdit) {
     openInEditor(outputPath);
-    console.log(chalk.dim('\nOpened in editor. Edit the commented sections, then:'));
-    console.log(chalk.dim(`  autoshell validate ${outputPath}`));
-    console.log(chalk.dim(`  autoshell install ${outputPath}`));
+    console.log(chalk.dim('\nOpened in editor. When done:'));
   } else {
     console.log(chalk.dim('\nNext steps:'));
     console.log(chalk.dim(`  1. Edit the config:  autoshell edit ${outputPath}`));
-    console.log(chalk.dim(`  2. Validate:         autoshell validate ${outputPath}`));
-    console.log(chalk.dim(`  3. Install:          autoshell install ${outputPath}`));
   }
+  console.log(chalk.dim(`  autoshell validate ${outputPath}`));
+  console.log(chalk.dim(`  autoshell install ${outputPath}`));
 }
