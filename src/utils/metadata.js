@@ -87,3 +87,44 @@ export async function findMetaByName(name) {
   const allMeta = await loadAllMeta();
   return allMeta.find((m) => m.name === name) || null;
 }
+
+/**
+ * Validate that metadata has the required fields for task execution.
+ *
+ * This is a lightweight runtime check, not full schema validation.
+ * Full validation happens at install time via config/validator.js.
+ *
+ * @param {object} meta - Task metadata object from meta/<id>.json.
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+export function validateMeta(meta) {
+  const errors = [];
+
+  if (!meta || typeof meta !== 'object') {
+    return { valid: false, errors: ['Metadata is null or not an object'] };
+  }
+
+  // name is required for display and logging
+  if (!meta.name || typeof meta.name !== 'string') {
+    errors.push('name: Missing or invalid task name');
+  }
+
+  // scriptPath is required to spawn the task
+  if (!meta.scriptPath || typeof meta.scriptPath !== 'string') {
+    errors.push('scriptPath: Missing script path — task may need to be reinstalled');
+  }
+
+  // Task must define at least one of: commands or interactive block
+  const hasCommands = Array.isArray(meta.commands) && meta.commands.length > 0;
+  const hasInteractive = Array.isArray(meta.interactive) && meta.interactive.length > 0;
+  if (!hasCommands && !hasInteractive) {
+    errors.push('commands/interactive: Task has no commands or interactive programs defined');
+  }
+
+  // Schedule is required (stored in metadata for reference)
+  if (!meta.schedule || typeof meta.schedule !== 'object') {
+    errors.push('schedule: Missing schedule configuration');
+  }
+
+  return { valid: errors.length === 0, errors };
+}

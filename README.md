@@ -77,6 +77,12 @@ commands:
   - "echo 'Backup complete'"
 ```
 
+Alternatively, use the interactive wizard:
+
+```bash
+autoshell create
+```
+
 2. Install the task:
 
 ```bash
@@ -232,7 +238,7 @@ Per-task settings override global settings.
 | `status [name]` | Show task status and last run info | |
 | `run <name>` | Execute task immediately | |
 | `logs [name]` | View task logs | `-n`, `-e`, `-f` |
-| `create` | Interactive task creation wizard | `-o <file>` |
+| `create` | Interactive task creation wizard | `-o <file>`, `-e` / `--edit` |
 | `export` | Export tasks to YAML | `-o <file>` |
 | `validate [file]` | Validate config file(s) | |
 | `add <file>` | Add command file to commands/ | |
@@ -295,10 +301,18 @@ autoshell status "My Task"
 
 ### run
 
-Execute a task immediately, bypassing its schedule:
+Execute a task immediately, bypassing its schedule. The config is validated before execution — if the metadata is corrupted or the script file is missing, you'll get a clear error with remediation steps.
 
 ```bash
 autoshell run "My Task"
+```
+
+If validation fails:
+```
+Error: Task "My Task" has invalid configuration:
+  - scriptPath: Missing script path — task may need to be reinstalled
+
+Try reinstalling: autoshell install <config-file> --force
 ```
 
 ### logs
@@ -321,12 +335,71 @@ autoshell logs "My Task" -f
 
 ### create
 
-Interactive wizard to build a config file:
+Interactive wizard that generates an annotated YAML config file. The wizard starts with a mode selector:
+
+| Mode | Description | Questions |
+|------|-------------|-----------|
+| **Simple commands** | Run shell commands on a schedule | name, schedule, commands |
+| **AI agent automation** | Run interactive CLI programs with rate limit handling | name, schedule, program, rate limit preset |
+| **Full config** | Configure all options including working dir | name, schedule, commands, program, rate limit, working dir |
+
+The generated file includes:
+- **Uncommented sections** for fields you configured
+- **Commented sections** with detailed explanations for optional fields you can enable later
 
 ```bash
+# Interactive wizard (saves to ~/.autoshell/commands/)
 autoshell create
+
+# Save to specific file
 autoshell create -o my-task.yaml
+
+# Create and open in your editor immediately
+autoshell create --edit
+autoshell create -e -o my-task.yaml
 ```
+
+The `--edit` flag opens the generated file using this fallback chain:
+1. `$VISUAL` environment variable
+2. `$EDITOR` environment variable
+3. Platform default: `open` (macOS), `xdg-open` (Linux), `start` (Windows)
+
+#### Example Output (Simple mode)
+
+```yaml
+# AutoShell Task Configuration
+# Docs: https://github.com/vocweb/autoshell-cli#configuration
+
+# Task name (required, must be unique across all installed tasks)
+name: "Daily Backup"
+
+# Enable or disable this task without removing the file (default: true)
+enabled: true
+
+# Schedule — when this task runs
+schedule:
+  type: daily
+  time: "02:00"
+
+# Shell commands to run sequentially
+commands:
+  - "tar -czf ~/backups/project-$(date +%F).tar.gz ~/project"
+  - "echo 'Backup complete'"
+
+# --- Interactive Program ---
+# Uncomment to run a CLI program in a PTY instead of (or alongside) commands.
+# interactive:
+#   program: "claude"
+#   ...
+
+# --- Rate Limit Handling ---
+# Uncomment to auto-detect rate limits from AI agents and wait for reset.
+# rate_limit:
+#   preset: claude-code
+#   ...
+```
+
+> **Note:** The generated skeleton is intentionally incomplete. Fill in the commented sections you need, then run `autoshell validate` and `autoshell install`.
 
 ### validate
 

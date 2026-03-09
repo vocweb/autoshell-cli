@@ -16,7 +16,7 @@ import { registerListCommand } from './cli-commands/list.js';
 import { registerStatusCommand } from './cli-commands/status.js';
 import { registerRunCommand } from './cli-commands/run.js';
 import { registerLogsCommand } from './cli-commands/logs.js';
-import { registerCreateCommand } from './cli-commands/create.js';
+import { registerCreateCommand } from './cli-commands/create/index.js';
 import { registerExportCommand } from './cli-commands/export.js';
 import { registerValidateCommand } from './cli-commands/validate.js';
 import { registerAddCommand } from './cli-commands/add.js';
