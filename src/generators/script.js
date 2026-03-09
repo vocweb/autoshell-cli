@@ -216,10 +216,15 @@ function generateBatInteractive(block) {
   const lines = [];
   const tempFile = '%TEMP%\\autoshell_input.tmp';
 
-  // Write inputs to temp file
-  for (let i = 0; i < block.inputs.length; i++) {
-    const op = i === 0 ? '>' : '>>';
-    lines.push(`echo ${block.inputs[i]} ${op} ${tempFile}`);
+  // Write inputs to temp file (split multiline inputs into separate echo lines)
+  let isFirst = true;
+  for (const input of block.inputs) {
+    const inputLines = input.split('\n');
+    for (const line of inputLines) {
+      const op = isFirst ? '>' : '>>';
+      lines.push(`echo ${escapeBat(line)} ${op} ${tempFile}`);
+      isFirst = false;
+    }
   }
 
   // Pipe temp file into program
@@ -247,6 +252,17 @@ function expandHomeWindows(path) {
 /**
  * Escape special characters for shell strings (double-quoted context).
  */
+function escapeBat(str) {
+  // Escape Bat special characters: & | < > ^ %
+  return str.replace(/%/g, '%%').replace(/([&|<>^])/g, '^$1');
+}
+
 function escapeShell(str) {
-  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$').replace(/`/g, '\\`');
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\$/g, '\\$')
+    .replace(/`/g, '\\`')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
 }

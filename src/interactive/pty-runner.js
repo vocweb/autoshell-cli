@@ -171,13 +171,16 @@ function processOutputLine(line, responder, ptyProcess, config, options) {
 function sendInputsSequentially(inputs, ptyProcess, delayMs) {
   if (!inputs || inputs.length === 0) return;
 
+  // Flatten multiline inputs into individual lines
+  const flatInputs = inputs.flatMap((inp) => inp.split('\n'));
+
   let index = 0;
   const sendNext = () => {
-    if (index >= inputs.length) return;
-    const input = inputs[index];
+    if (index >= flatInputs.length) return;
+    const input = flatInputs[index];
     ptyProcess.write(input + '\r');
     index++;
-    if (index < inputs.length) {
+    if (index < flatInputs.length) {
       setTimeout(sendNext, delayMs);
     }
   };
