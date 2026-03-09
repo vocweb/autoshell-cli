@@ -78,7 +78,7 @@ async function runCreate(options) {
     console.log(chalk.dim(`  autoshell install ${outputPath}`));
   } else {
     console.log(chalk.dim('\nNext steps:'));
-    console.log(chalk.dim(`  1. Edit the config:  $EDITOR ${outputPath}`));
+    console.log(chalk.dim(`  1. Edit the config:  autoshell edit ${outputPath}`));
     console.log(chalk.dim(`  2. Validate:         autoshell validate ${outputPath}`));
     console.log(chalk.dim(`  3. Install:          autoshell install ${outputPath}`));
   }

@@ -9,7 +9,10 @@
  * @see https://github.com/vocweb/autoshell-cli
  */
 
+import { readFileSync } from 'node:fs';
 import { Command } from 'commander';
+
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
 import { registerInstallCommand } from './cli-commands/install.js';
 import { registerUninstallCommand } from './cli-commands/uninstall.js';
 import { registerListCommand } from './cli-commands/list.js';
@@ -22,6 +25,7 @@ import { registerValidateCommand } from './cli-commands/validate.js';
 import { registerAddCommand } from './cli-commands/add.js';
 import { registerRemoveCommand } from './cli-commands/remove.js';
 import { registerMigrateCommand } from './cli-commands/migrate.js';
+import { registerEditCommand } from './cli-commands/edit.js';
 import { registerHubCommand } from './cli-commands/hub.js';
 
 const program = new Command();
@@ -29,7 +33,7 @@ const program = new Command();
 program
   .name('autoshell')
   .description('Cross-platform CLI for managing scheduled shell command sets')
-  .version('0.1.0');
+  .version(pkg.version);
 
 // Core commands (Phase 05)
 registerInstallCommand(program);
@@ -46,6 +50,7 @@ registerValidateCommand(program);
 registerAddCommand(program);
 registerRemoveCommand(program);
 registerMigrateCommand(program);
+registerEditCommand(program);
 
 // Hub commands (Phase 13)
 registerHubCommand(program);
