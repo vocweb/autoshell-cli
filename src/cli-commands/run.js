@@ -16,6 +16,7 @@ import { access } from 'node:fs/promises';
 import chalk from 'chalk';
 import { findMetaByName, validateMeta } from '../utils/metadata.js';
 import { getPlatform } from '../utils/platform.js';
+import { expandHome } from '../utils/paths.js';
 
 /**
  * Register the run command with the commander program.
@@ -81,7 +82,7 @@ async function runTask(name) {
   return new Promise((resolve, reject) => {
     const child = spawn(shell, args, {
       stdio: 'inherit',
-      cwd: meta.working_dir || undefined,
+      cwd: expandHome(meta.working_dir) || undefined,
     });
 
     child.on('close', (code) => {

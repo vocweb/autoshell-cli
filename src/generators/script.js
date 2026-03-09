@@ -36,10 +36,19 @@ function generateBash(record) {
 
   // Header
   lines.push('#!/bin/bash');
-  lines.push('set -euo pipefail');
   lines.push('');
   lines.push(`# AutoShell Task: ${record.name}`);
   lines.push(`# Generated: ${timestamp}`);
+  lines.push('');
+  lines.push('# Ensure valid CWD before strict mode (launchd may start in protected dir)');
+  lines.push('cd "$HOME" 2>/dev/null || true');
+  lines.push('');
+  lines.push('# Source user profile to inherit PATH (launchd/systemd may not load shell profiles)');
+  lines.push('for f in "$HOME/.profile" "$HOME/.bash_profile" "$HOME/.bashrc" "$HOME/.zprofile" "$HOME/.zshrc"; do');
+  lines.push('  [ -f "$f" ] && source "$f" 2>/dev/null || true');
+  lines.push('done');
+  lines.push('');
+  lines.push('set -euo pipefail');
   lines.push('');
 
   // Log helper
@@ -105,7 +114,8 @@ function generateBashInteractive(block) {
   // expect approach
   lines.push('if command -v expect &>/dev/null; then');
   lines.push("  expect <<'EXPECT_SCRIPT'");
-  lines.push(`  spawn ${block.program}`);
+  const spawnArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
+  lines.push(`  spawn ${block.program}${spawnArgs}`);
 
   // Auto-responses: wait for prompt → send response
   if (block.auto_responses && block.auto_responses.length > 0) {
@@ -127,7 +137,8 @@ function generateBashInteractive(block) {
   // Fallback: stdin redirect
   lines.push('else');
   const inputStr = block.inputs.join('\n');
-  lines.push(`  echo "${escapeShell(inputStr)}" | ${block.program}`);
+  const fallbackArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
+  lines.push(`  echo "${escapeShell(inputStr)}" | ${block.program}${fallbackArgs}`);
   lines.push('fi');
 
   return lines;
@@ -154,6 +165,12 @@ function generateBat(record) {
   lines.push('');
   lines.push(`REM AutoShell Task: ${record.name}`);
   lines.push(`REM Generated: ${timestamp}`);
+  lines.push('');
+  lines.push('REM Ensure valid CWD (schtasks may start in system directory)');
+  lines.push('cd /d "%USERPROFILE%" 2>nul');
+  lines.push('');
+  lines.push('REM Refresh PATH from registry (schtasks may not inherit full user PATH)');
+  lines.push('for /f "tokens=2*" %%A in (\'reg query "HKCU\\Environment" /v PATH 2^>nul\') do set "PATH=%%B;%PATH%"');
   lines.push('');
 
   // Working directory
@@ -228,7 +245,8 @@ function generateBatInteractive(block) {
   }
 
   // Pipe temp file into program
-  lines.push(`${block.program} < ${tempFile}`);
+  const batArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
+  lines.push(`${block.program}${batArgs} < ${tempFile}`);
   lines.push(`del ${tempFile}`);
 
   return lines;

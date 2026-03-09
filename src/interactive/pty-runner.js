@@ -10,6 +10,7 @@
 
 import { spawn } from 'node:child_process';
 import { createAutoResponder } from './auto-responder.js';
+import { expandHome } from '../utils/paths.js';
 
 // Attempt to load node-pty (optional dependency)
 let nodePty = null;
@@ -49,11 +50,11 @@ async function runWithPty(config, options) {
   let inputIndex = 0;
 
   return new Promise((resolve) => {
-    const ptyProcess = nodePty.spawn(config.program, [], {
+    const ptyProcess = nodePty.spawn(config.program, config.args || [], {
       name: 'xterm-256color',
       cols: 120,
       rows: 30,
-      cwd: options.workingDir || process.cwd(),
+      cwd: expandHome(options.workingDir) || process.cwd(),
       env: { ...process.env, ...options.env },
     });
 
@@ -106,8 +107,8 @@ async function runWithSpawn(config, options) {
   const output = [];
 
   return new Promise((resolve, reject) => {
-    const child = spawn(config.program, [], {
-      cwd: options.workingDir || process.cwd(),
+    const child = spawn(config.program, config.args || [], {
+      cwd: expandHome(options.workingDir) || process.cwd(),
       env: { ...process.env, ...options.env },
       stdio: ['pipe', 'pipe', 'pipe'],
     });

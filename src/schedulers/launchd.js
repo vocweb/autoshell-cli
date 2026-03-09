@@ -129,11 +129,10 @@ function generatePlist(label, record, scriptPath, logDir) {
     lines.push('  </dict>');
   }
 
-  // Working directory
-  if (record.working_dir) {
-    const dir = record.working_dir.replace(/^~/, homedir());
-    addKeyString(lines, 'WorkingDirectory', dir);
-  }
+  // Working directory — always use HOME as plist CWD to avoid macOS TCC
+  // permission errors with protected directories (~/Documents, ~/Desktop).
+  // The generated script handles cd to the actual working_dir.
+  addKeyString(lines, 'WorkingDirectory', homedir());
 
   // Logging
   addKeyString(lines, 'StandardOutPath', join(logDir, 'stdout.log'));

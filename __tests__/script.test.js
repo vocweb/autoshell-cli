@@ -19,7 +19,8 @@ const minimal = (overrides = {}) => ({
 describe('generateScript — Bash', () => {
   it('includes shebang and strict mode header', () => {
     const script = generateScript(minimal(), 'darwin');
-    assert.ok(script.startsWith('#!/bin/bash\nset -euo pipefail'));
+    assert.ok(script.startsWith('#!/bin/bash'));
+    assert.ok(script.includes('set -euo pipefail'));
   });
 
   it('includes task name in header comment', () => {

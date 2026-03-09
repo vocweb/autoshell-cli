@@ -7,7 +7,7 @@
 
 const VALID_SCHEDULE_TYPES = ['once', 'daily', 'weekly', 'cron'];
 const VALID_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const VALID_RATE_LIMIT_ACTIONS = ['pause_and_resume', 'exit', 'notify_only'];
+const VALID_RATE_LIMIT_ACTIONS = ['pause_and_resume', 'wait', 'exit', 'notify_only'];
 const VALID_WAIT_TIME_FORMATS = ['hours_minutes', 'minutes', 'seconds', 'iso8601', 'unix_timestamp'];
 const VALID_NOTIFICATION_TYPES = ['slack', 'discord', 'email', 'webhook'];
 const TIME_REGEX = /^\d{2}:\d{2}$/;

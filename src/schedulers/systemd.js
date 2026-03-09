@@ -121,11 +121,9 @@ function generateService(unitName, record, scriptPath, logDir) {
   lines.push('Type=oneshot');
   lines.push(`ExecStart=/bin/bash ${scriptPath}`);
 
-  // Working directory (~ → %h for systemd home specifier)
-  if (record.working_dir) {
-    const dir = record.working_dir.replace(/^~/, '%h');
-    lines.push(`WorkingDirectory=${dir}`);
-  }
+  // Working directory — use HOME to avoid permission issues with protected dirs.
+  // The generated script handles cd to the actual working directory.
+  lines.push('WorkingDirectory=%h');
 
   // Environment variables
   if (record.env) {

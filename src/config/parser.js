@@ -168,6 +168,19 @@ function applyDefaults(config) {
       record.logging.retention ??= 7;
     }
 
+    // Normalize interactive: object → single-element array
+    if (record.interactive && !Array.isArray(record.interactive)) {
+      record.interactive = [record.interactive];
+    }
+
+    // Move record-level rate_limit into interactive items (shorthand support)
+    if (record.rate_limit && Array.isArray(record.interactive)) {
+      for (const item of record.interactive) {
+        item.rate_limit ??= record.rate_limit;
+      }
+      delete record.rate_limit;
+    }
+
     // interactive rate_limit defaults
     if (record.interactive) {
       for (const item of record.interactive) {

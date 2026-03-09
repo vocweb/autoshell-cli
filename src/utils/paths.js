@@ -42,3 +42,16 @@ export function ensureDirs() {
     mkdirSync(dir, { recursive: true });
   }
 }
+
+/**
+ * Expand leading ~ to the user's home directory.
+ * Node.js does not expand ~ in paths (unlike shell), so this must be
+ * called before using user-provided paths in fs/spawn operations.
+ *
+ * @param {string} filePath - Path that may start with ~.
+ * @returns {string} Absolute path with ~ replaced by homedir().
+ */
+export function expandHome(filePath) {
+  if (!filePath || typeof filePath !== 'string') return filePath;
+  return filePath.replace(/^~(?=\/|$)/, homedir());
+}
