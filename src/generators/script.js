@@ -155,9 +155,11 @@ function generateBashInteractive(block) {
   lines.push('  timeout { }');
   lines.push('}');
 
-  // Send scheduled inputs
+  // Send scheduled inputs — split text and Enter to give TUI apps time to process
   for (let i = 0; i < block.inputs.length; i++) {
-    lines.push(`send "${escapeShell(block.inputs[i])}\\r"`);
+    lines.push(`send "${escapeShell(block.inputs[i])}"`);
+    lines.push('sleep 0.5');
+    lines.push('send "\\r"');
     // Wait for output to settle between inputs (skip after last)
     if (i < block.inputs.length - 1) {
       lines.push('set timeout 3');

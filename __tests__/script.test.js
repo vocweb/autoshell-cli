@@ -66,8 +66,9 @@ describe('generateScript — Bash', () => {
     assert.ok(script.includes('_EXPECT_SCRIPT="$(mktemp /tmp/autoshell_expect_XXXXXX.exp)"'));
     // spawn line uses printf with resolved path
     assert.ok(script.includes("printf 'spawn %s\\n' \"$_PROG_PATH\""));
-    assert.ok(script.includes('send "/help\\r"'));
-    assert.ok(script.includes('send "/quit\\r"'));
+    assert.ok(script.includes('send "/help"'));
+    assert.ok(script.includes('send "/quit"'));
+    assert.ok(script.includes('send "\\r"'));
     // Waits for output to settle before sending input
     assert.ok(script.includes('exp_continue'));
     assert.ok(script.includes('interact'));
