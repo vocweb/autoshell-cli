@@ -239,6 +239,7 @@ Per-task settings override global settings.
 | `run <name>` | Execute task immediately | |
 | `logs [name]` | View task logs | `-n`, `-e`, `-f` |
 | `create` | Interactive task creation wizard | `-o <file>`, `-e` / `--edit` |
+| `edit <name\|file>` | Open config file in your editor | |
 | `export` | Export tasks to YAML | `-o <file>` |
 | `validate [file]` | Validate config file(s) | |
 | `add <file>` | Add command file to commands/ | |
@@ -359,10 +360,11 @@ autoshell create --edit
 autoshell create -e -o my-task.yaml
 ```
 
-The `--edit` flag opens the generated file using this fallback chain:
-1. `$VISUAL` environment variable
-2. `$EDITOR` environment variable
-3. Platform default: `open` (macOS), `xdg-open` (Linux), `start` (Windows)
+After the file is saved, the wizard prompts "Open in editor now? (Y/n)":
+- **Y** — Opens the generated file in your editor (determined by `$VISUAL`, `$EDITOR`, or platform default)
+- **n** — Skips the prompt and shows next steps
+
+The `--edit` flag (`-e`) skips the prompt and opens the editor directly.
 
 #### Example Output (Simple mode)
 
@@ -400,6 +402,30 @@ commands:
 ```
 
 > **Note:** The generated skeleton is intentionally incomplete. Fill in the commented sections you need, then run `autoshell validate` and `autoshell install`.
+
+After creating a config, the wizard prompts "Open in editor now? (Y/n)" to let you edit immediately. You can also use the `edit` command anytime to modify an existing config.
+
+### edit
+
+Open a config file in your editor. Accepts a task name (searches `~/.autoshell/commands/`) or direct file path.
+
+```bash
+# Open by task name
+autoshell edit "My Task"
+
+# Open by file path
+autoshell edit /path/to/config.yaml
+
+# Open recently created file
+autoshell edit implement-autoshell-backend.yaml
+```
+
+The editor is determined by this fallback chain:
+1. `$VISUAL` environment variable
+2. `$EDITOR` environment variable
+3. Platform default: `open` (macOS), `xdg-open` (Linux), `start` (Windows)
+
+If the file doesn't exist or isn't found in `~/.autoshell/commands/`, you'll get a clear error message.
 
 ### validate
 
