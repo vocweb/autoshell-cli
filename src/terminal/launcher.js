@@ -94,11 +94,9 @@ function resolvePreset(name, platform) {
 async function launchWithPreset(scriptPath, preset, config, platform) {
   // macOS: use `open -a <app>` method
   if (preset.method === 'open' && platform === 'darwin') {
-    const args = ['open', '-a', preset.app, '-n'];
-    if (config.args.length > 0) {
-      args.push('--args', ...config.args);
-    }
-    args.push('--args', scriptPath);
+    // Pass script path directly — quarantine removal + shebang handles execution
+    // Don't add /bin/bash: only Terminal.app interprets --args as commands, others (iTerm2) don't
+    const args = ['open', '-a', preset.app, '-n', '--args', scriptPath, ...config.args];
     return spawnDetached(args[0], args.slice(1));
   }
 

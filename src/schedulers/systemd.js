@@ -119,7 +119,15 @@ function generateService(unitName, record, scriptPath, logDir) {
 
   lines.push('[Service]');
   lines.push('Type=oneshot');
-  lines.push(`ExecStart=/bin/bash ${scriptPath}`);
+
+  // Launch in terminal if configured, else run directly
+  if (record.terminal && record.terminal.new_window !== false) {
+    const bin = resolveLinuxTerminal(record.terminal.program);
+    const termArg = bin === 'gnome-terminal' ? '--' : '-e';
+    lines.push(`ExecStart=${bin} ${termArg} /bin/bash ${scriptPath}`);
+  } else {
+    lines.push(`ExecStart=/bin/bash ${scriptPath}`);
+  }
 
   // Working directory — use HOME to avoid permission issues with protected dirs.
   // The generated script handles cd to the actual working directory.
@@ -240,4 +248,24 @@ export function cronToCalendar(cron) {
   const minPart = min === '*' ? '*' : min.padStart(2, '0');
 
   return `${dowPart}*-${monthPart}-${domPart} ${hourPart}:${minPart}:00`;
+}
+
+/**
+ * Resolve terminal preset name to Linux executable.
+ * Falls back to x-terminal-emulator for unknown presets.
+ *
+ * @param {string} [program='default'] - Preset name or binary path.
+ * @returns {string} Terminal binary name.
+ */
+function resolveLinuxTerminal(program = 'default') {
+  const presets = {
+    default: 'x-terminal-emulator',
+    alacritty: 'alacritty',
+    kitty: 'kitty',
+    hyper: 'hyper',
+    'gnome-terminal': 'gnome-terminal',
+    konsole: 'konsole',
+    tilix: 'tilix',
+  };
+  return presets[program.toLowerCase()] || program;
 }

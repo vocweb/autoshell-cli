@@ -26,7 +26,7 @@ const WEEKDAY_MAP = {
  */
 export async function install(taskId, record, scriptPath) {
   const taskName = `${TASK_PREFIX}${taskId}`;
-  const args = buildCreateArgs(taskName, record.schedule, scriptPath);
+  const args = buildCreateArgs(taskName, record.schedule, scriptPath, record.terminal);
 
   await exec('schtasks', args);
 }
@@ -90,8 +90,14 @@ export async function isInstalled(taskId) {
 /**
  * Build schtasks /create arguments from schedule config.
  */
-function buildCreateArgs(taskName, schedule, scriptPath) {
-  const args = ['/create', '/tn', taskName, '/tr', scriptPath, '/f'];
+function buildCreateArgs(taskName, schedule, scriptPath, terminal) {
+  // Wrap in terminal command if configured (opens new window for interactive tasks)
+  let taskRun = scriptPath;
+  if (terminal && terminal.new_window !== false) {
+    const bin = resolveWindowsTerminal(terminal.program);
+    taskRun = `${bin} ${scriptPath}`;
+  }
+  const args = ['/create', '/tn', taskName, '/tr', taskRun, '/f'];
 
   switch (schedule.type) {
     case 'daily':
@@ -145,4 +151,21 @@ function parseCronTime(cron) {
   const min = parts[0] === '*' ? '00' : parts[0].padStart(2, '0');
   const hour = parts[1] === '*' ? '00' : parts[1].padStart(2, '0');
   return `${hour}:${min}`;
+}
+
+/**
+ * Resolve terminal preset name to Windows command.
+ * Falls back to cmd /c start cmd /c for unknown presets.
+ *
+ * @param {string} [program='default'] - Preset name or binary path.
+ * @returns {string} Terminal launch command prefix.
+ */
+function resolveWindowsTerminal(program = 'default') {
+  const presets = {
+    default: 'cmd /c start cmd /c',
+    'windows-terminal': 'wt.exe cmd /c',
+    cmder: 'cmder /TASK',
+    alacritty: 'alacritty -e cmd /c',
+  };
+  return presets[program.toLowerCase()] || `cmd /c start ${program} /c`;
 }

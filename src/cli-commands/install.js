@@ -15,6 +15,7 @@ import { taskId } from '../utils/task-id.js';
 import { paths, ensureDirs } from '../utils/paths.js';
 import { getPlatform } from '../utils/platform.js';
 import { saveMeta, loadMeta } from '../utils/metadata.js';
+import { removeQuarantine } from '../utils/quarantine.js';
 
 /**
  * Register the install command with commander program.
@@ -89,6 +90,7 @@ async function runInstall(source, options) {
       if (platform !== 'win32') {
         await chmod(scriptPath, 0o755);
       }
+      await removeQuarantine(scriptPath);
 
       // Register with scheduler
       await scheduler.install(id, record, scriptPath);

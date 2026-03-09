@@ -105,11 +105,21 @@ function generatePlist(label, record, scriptPath, logDir) {
   // Label
   addKeyString(lines, 'Label', label);
 
-  // Program arguments
+  // Program arguments — open in terminal app if configured, else run directly
   lines.push('  <key>ProgramArguments</key>');
   lines.push('  <array>');
-  lines.push('    <string>/bin/bash</string>');
-  lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
+  if (record.terminal && record.terminal.new_window !== false) {
+    // Launch script inside a terminal application using macOS `open -a`
+    const app = resolveTerminalApp(record.terminal.program);
+    lines.push('    <string>/usr/bin/open</string>');
+    lines.push('    <string>-a</string>');
+    lines.push(`    <string>${escapeXml(app)}</string>`);
+    lines.push('    <string>-n</string>');
+    lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
+  } else {
+    lines.push('    <string>/bin/bash</string>');
+    lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
+  }
   lines.push('  </array>');
 
   // Schedule
@@ -242,6 +252,26 @@ function dictXml(obj) {
 function addKeyString(lines, key, value, indent = '  ') {
   lines.push(`${indent}<key>${escapeXml(key)}</key>`);
   lines.push(`${indent}<string>${escapeXml(value)}</string>`);
+}
+
+/**
+ * Resolve terminal preset name to macOS application name.
+ * Falls back to Terminal.app for unknown presets.
+ *
+ * @param {string} [program='default'] - Preset name or custom app name.
+ * @returns {string} macOS application name.
+ */
+function resolveTerminalApp(program = 'default') {
+  const presets = {
+    default: 'Terminal',
+    iterm: 'iTerm',
+    iterm2: 'iTerm',
+    warp: 'Warp',
+    alacritty: 'Alacritty',
+    kitty: 'kitty',
+    hyper: 'Hyper',
+  };
+  return presets[program.toLowerCase()] || program;
 }
 
 /**
