@@ -1,0 +1,78 @@
+# AutoShell — Example configuration (YAML)
+# Full schema reference: see brainstorm.md Section 6
+
+settings:
+  terminal:
+    program: default
+    new_window: true
+
+records:
+  # Daily task: run git pull + build
+  - name: "Daily Build"
+    enabled: true
+    schedule:
+      type: daily
+      time: "09:00"
+    working_dir: ~/projects/my-app
+    env:
+      NODE_ENV: production
+    commands:
+      - git pull origin main
+      - npm ci
+      - npm run build
+    logging:
+      enabled: true
+      max_size: "10MB"
+      retention: 7
+
+  # Weekly task with interactive AI agent
+  - name: "Weekly Code Review"
+    enabled: true
+    schedule:
+      type: weekly
+      time: "10:00"
+      weekdays: [Mon, Wed, Fri]
+    working_dir: ~/projects/my-app
+    interactive:
+      - program: claude
+        inputs:
+          - "/review src/"
+          - "/quit"
+        auto_responses:
+          - prompt: "Allow access"
+            response: "yes"
+        rate_limit:
+          preset: claude-code
+          action: pause_and_resume
+    notifications:
+      on_success: true
+      on_failure: true
+      channels:
+        - type: slack
+          webhook_url: "${SLACK_WEBHOOK_URL}"
+
+  # One-time task
+  - name: "Database Migration"
+    enabled: true
+    schedule:
+      type: once
+      date: "2026-04-01"
+      time: "03:00"
+    working_dir: ~/projects/backend
+    commands:
+      - npm run migrate
+      - npm run seed
+    notifications:
+      on_failure: true
+      channels:
+        - type: webhook
+          url: "${WEBHOOK_URL}"
+
+  # Cron-based task
+  - name: "Health Check"
+    enabled: true
+    schedule:
+      type: cron
+      cron: "*/15 * * * *"
+    commands:
+      - curl -sf http://localhost:3000/health || exit 1

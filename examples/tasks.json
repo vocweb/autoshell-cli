@@ -1,0 +1,39 @@
+{
+  "records": [
+    {
+      "name": "Daily Build",
+      "enabled": true,
+      "schedule": {
+        "type": "daily",
+        "time": "09:00"
+      },
+      "working_dir": "~/projects/my-app",
+      "commands": [
+        "git pull origin main",
+        "npm ci",
+        "npm run build"
+      ]
+    },
+    {
+      "name": "Weekly Backup",
+      "enabled": true,
+      "schedule": {
+        "type": "weekly",
+        "time": "02:00",
+        "weekdays": ["Sun"]
+      },
+      "commands": [
+        "pg_dump mydb > ~/backups/db-$(date +%Y%m%d).sql"
+      ],
+      "notifications": {
+        "on_failure": true,
+        "channels": [
+          {
+            "type": "webhook",
+            "url": "${WEBHOOK_URL}"
+          }
+        ]
+      }
+    }
+  ]
+}

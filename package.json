@@ -1,0 +1,59 @@
+{
+  "name": "autoshell",
+  "version": "0.2.0",
+  "description": "Schedule shell commands and AI agents (Claude, Aider, Cursor) to run overnight with auto-responder, rate limit recovery, and notifications. Cross-platform: macOS, Linux, Windows.",
+  "type": "module",
+  "bin": {
+    "autoshell": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test __tests__/**/*.test.js",
+    "test:verbose": "node --test --test-reporter=spec __tests__/**/*.test.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.0",
+    "yaml": "^2.4.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.0.0",
+    "nodemailer": "^6.9.0"
+  },
+  "keywords": [
+    "cli",
+    "scheduler",
+    "automation",
+    "launchd",
+    "systemd",
+    "cron",
+    "shell",
+    "cross-platform",
+    "ai-agent",
+    "claude",
+    "aider",
+    "task-scheduler",
+    "rate-limit",
+    "auto-responder",
+    "scheduled-tasks",
+    "devops"
+  ],
+  "author": "vocweb",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vocweb/autoshell-cli.git"
+  },
+  "homepage": "https://github.com/vocweb/autoshell-cli#readme",
+  "bugs": {
+    "url": "https://github.com/vocweb/autoshell-cli/issues"
+  }
+}
