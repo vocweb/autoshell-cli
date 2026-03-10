@@ -12,7 +12,9 @@ import { paths } from '../utils/paths.js';
 import { loadAllMeta, findMetaByName } from '../utils/metadata.js';
 
 /**
- * Register the status command with commander program.
+ * Register the status command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerStatusCommand(program) {
   program
@@ -46,7 +48,11 @@ export function registerStatusCommand(program) {
 }
 
 /**
- * Display status for a single task.
+ * Display status details for a single task, including schedule, last run time,
+ * the last 5 lines of output, and the last 3 stderr/error lines.
+ *
+ * @param {object} meta - Task metadata object from the metadata store.
+ * @returns {Promise<void>}
  */
 async function showStatus(meta) {
   const id = meta.taskId;
@@ -88,7 +94,12 @@ async function showStatus(meta) {
 }
 
 /**
- * Get the most recent log file from a task's log directory.
+ * Get the most recent log file and its metadata from a task's log directory.
+ * Sorts log files in reverse lexicographic order — ISO-prefixed names sort correctly.
+ *
+ * @param {string} logDir - Absolute path to the task's log directory.
+ * @returns {Promise<{ path: string, time: string, content: string }|null>}
+ *   Log object or null if no logs exist.
  */
 async function getLatestLog(logDir) {
   try {
@@ -110,6 +121,12 @@ async function getLatestLog(logDir) {
   }
 }
 
+/**
+ * Format a schedule config object into a human-readable string.
+ *
+ * @param {object|null} schedule - Schedule config object.
+ * @returns {string} Human-readable schedule description.
+ */
 function formatSchedule(schedule) {
   if (!schedule) return 'unknown';
   switch (schedule.type) {

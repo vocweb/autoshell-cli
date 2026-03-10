@@ -60,12 +60,22 @@ describe('generateScript — Bash', () => {
       }],
     });
     const script = generateScript(record, 'darwin');
+    // Resolves program path before expect (launchd PATH fix)
+    assert.ok(script.includes('_PROG_PATH="$(command -v claude'));
     assert.ok(script.includes('if command -v expect &>/dev/null; then'));
-    assert.ok(script.includes('spawn claude'));
-    assert.ok(script.includes('send "/help\\r"'));
-    assert.ok(script.includes('send "/quit\\r"'));
+    assert.ok(script.includes('_EXPECT_SCRIPT="$(mktemp /tmp/autoshell_expect_XXXXXX.exp)"'));
+    // spawn line uses printf with resolved path
+    assert.ok(script.includes("printf 'spawn %s\\n' \"$_PROG_PATH\""));
+    assert.ok(script.includes('send "/help"'));
+    assert.ok(script.includes('send "/quit"'));
+    assert.ok(script.includes('send "\\r"'));
+    // Waits for output to settle before sending input
+    assert.ok(script.includes('exp_continue'));
+    assert.ok(script.includes('interact'));
+    assert.ok(script.includes('expect -f "$_EXPECT_SCRIPT"'));
     assert.ok(script.includes('else'));
-    assert.ok(script.includes('| claude'));
+    // Fallback uses sleep for initialization + process substitution
+    assert.ok(script.includes('< <(sleep 5; echo'));
     assert.ok(script.includes('fi'));
   });
 

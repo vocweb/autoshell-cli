@@ -15,6 +15,7 @@ import { taskId } from '../utils/task-id.js';
 import { paths, ensureDirs } from '../utils/paths.js';
 import { getPlatform } from '../utils/platform.js';
 import { saveMeta, loadMeta } from '../utils/metadata.js';
+import { removeQuarantine } from '../utils/quarantine.js';
 
 /**
  * Register the install command with commander program.
@@ -38,7 +39,12 @@ export function registerInstallCommand(program) {
 }
 
 /**
- * Execute the install workflow.
+ * Execute the install workflow: resolve configs, generate scripts,
+ * register with the OS scheduler, and persist metadata.
+ *
+ * @param {string|undefined} source - Config file path, URL, or undefined to scan commands/.
+ * @param {{ dryRun?: boolean, force?: boolean }} options - Commander options.
+ * @returns {Promise<void>}
  */
 async function runInstall(source, options) {
   ensureDirs();
@@ -89,6 +95,7 @@ async function runInstall(source, options) {
       if (platform !== 'win32') {
         await chmod(scriptPath, 0o755);
       }
+      await removeQuarantine(scriptPath);
 
       // Register with scheduler
       await scheduler.install(id, record, scriptPath);
@@ -118,10 +125,38 @@ async function runInstall(source, options) {
   if (skipped > 0) parts.push(`${skipped} skipped`);
   if (options.dryRun) parts.unshift('[dry-run]');
   console.log(chalk.bold(`\n${parts.join(', ')}`));
+
+  // Platform-specific advisory hints
+  if (installed > 0 && !options.dryRun) {
+    showAdvisoryHints(platform);
+  }
 }
 
 /**
- * Resolve config sources: from a specific file/URL or scan commands directory.
+ * Show platform-specific advisory hints after a successful install.
+ * Currently provides a macOS sleep-prevention tip since scheduled tasks
+ * won't fire if the machine is asleep.
+ *
+ * @param {string} platform - Node.js platform string ('darwin', 'linux', 'win32').
+ */
+function showAdvisoryHints(platform) {
+  if (platform === 'darwin') {
+    console.log(
+      chalk.blue(
+        '\n💡 Tip: To ensure scheduled tasks run overnight, disable auto-sleep:\n' +
+        '   System Settings → Energy Saver → "Prevent automatic sleeping when display is off"\n'
+      )
+    );
+  }
+}
+
+/**
+ * Resolve one or more configs from a source argument.
+ * If source is provided, loads that single file/URL.
+ * If omitted, scans ~/.autoshell/commands/ for all YAML/JSON files.
+ *
+ * @param {string|undefined} source - File path, URL, or undefined.
+ * @returns {Promise<Array<{ settings: object, records: object[] }>>} Array of parsed configs.
  */
 async function resolveConfigs(source) {
   if (source) {

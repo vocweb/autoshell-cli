@@ -4,9 +4,49 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org)
 [![CI](https://github.com/vocweb/autoshell-cli/actions/workflows/test.yml/badge.svg)](https://github.com/vocweb/autoshell-cli/actions)
 
-> Cross-platform CLI for managing scheduled shell command sets with built-in support for interactive programs and AI agent automation.
+> **Your AI subscription works 8 hours a day. AutoShell makes it work 24.**
 
-**Key highlights:**
+You pay $20/month for Claude Pro. You use it 8 hours a day. That's **16 hours wasted every night.**
+
+AutoShell fixes that. It's a CLI tool that schedules and runs your shell commands automatically — including commands that launch AI agents like Claude, Aider, or Cursor CLI. You write a simple YAML config, AutoShell handles the rest: scheduling, interactive prompts, rate limit recovery, and notifications.
+
+**AutoShell is NOT an AI agent.** It's the scheduler that keeps your AI agents working while you sleep.
+
+Set up tasks before bed. Wake up to results in Slack.
+
+```bash
+npm install -g autoshell
+```
+
+## Why AutoShell?
+
+Most task schedulers just run commands. AutoShell handles what happens **after** the command starts.
+
+| Problem | Cron / Task Scheduler | AutoShell |
+|---------|----------------------|-----------|
+| AI agent hits rate limit at 3 AM | Script dies silently | Auto-pause, wait for reset, resume |
+| Claude asks "Allow access?" | Stuck forever, blocks all night | Auto-responder answers from config |
+| Different OS, different scheduler | Rewrite for each platform | One YAML, works on macOS + Windows + Linux |
+| Task fails at 2 AM | Find out next morning | Instant Slack/Discord/Email alert |
+| Need to run on a schedule | Write cron + bash + error handling | One YAML file, `autoshell install`, done |
+
+No other CLI tool combines scheduled execution + interactive program support + rate limit handling in one package.
+
+## What Solo Devs Are Doing With It
+
+**Overnight Code Review:**
+Schedule Claude to review your entire codebase every night at 11 PM. AutoShell auto-responds to permission prompts, handles rate limits when Claude hits its usage cap, waits for reset, then continues. Wake up to a full review summary in Slack. Your $20/month subscription now works 24 hours.
+
+**Nightly Refactoring with Aider:**
+Every night, Aider refactors one module in your project. AutoShell launches it, feeds the prompt, handles the "apply changes?" confirmations, and logs everything. In the morning just `git diff` to see what changed overnight.
+
+**Weekly Security Audit:**
+Every Sunday at 2 AM, AutoShell runs `npm audit`, checks for outdated dependencies, and sends a Discord summary. Monday morning, you know exactly what needs updating.
+
+**Multi-Agent Pipeline:**
+Chain 3 tasks: Claude reviews code at 10 PM, Aider applies fixes at midnight, then a test suite runs at 2 AM. Each task is a separate YAML file. AutoShell runs them in sequence, handles all the rate limits and prompts, and you get a full report by morning.
+
+## Key Features
 
 - Schedule shell commands on macOS (launchd), Linux (systemd), Windows (Task Scheduler)
 - Run interactive CLI programs (Claude Code, Aider, OpenCode...) with auto-responder
@@ -16,8 +56,10 @@
 
 ## Table of Contents
 
-- [Installation](#installation)
+- [Why AutoShell?](#why-autoshell)
+- [What Solo Devs Are Doing With It](#what-solo-devs-are-doing-with-it)
 - [Quick Start](#quick-start)
+- [Installation](#installation)
 - [Configuration](#configuration)
 - [Commands Reference](#commands-reference)
 - [Interactive Programs & Auto-Responder](#interactive-programs--auto-responder)
@@ -28,6 +70,7 @@
 - [Command Hub](#command-hub)
 - [Data Directory Structure](#data-directory-structure)
 - [Platform Support](#platform-support)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -65,7 +108,38 @@ autoshell --help
 
 ## Quick Start
 
-1. Create a config file `daily-backup.yaml`:
+```bash
+$ npm install -g autoshell
+$ autoshell create
+? Task name: Nightly Claude Review
+? Schedule: daily at 23:00
+? Program: claude
+? Input: /review src/ --fix
+Saved to ~/.autoshell/commands/nightly-claude-review.yaml
+
+$ autoshell install
+Installed 1 task (macOS launchd)
+
+$ autoshell list
+NAME                   SCHEDULE        STATUS    NEXT RUN
+Nightly Claude Review  daily 23:00     active    tonight 23:00
+```
+
+That night, while you sleep:
+
+```
+[23:00:01] Starting claude...
+[23:00:05] Auto-responded: "Allow access" -> "yes"
+[23:15:30] Rate limit detected. Waiting 15m for reset...
+[23:30:31] Resumed. Continuing review...
+[23:58:00] Done. Notification sent to Slack.
+```
+
+Next morning: check Slack. Full code review waiting for you.
+
+### Manual Config
+
+You can also create config files directly:
 
 ```yaml
 name: "Daily Backup"
@@ -77,28 +151,9 @@ commands:
   - "echo 'Backup complete'"
 ```
 
-Alternatively, use the interactive wizard:
-
-```bash
-autoshell create
-```
-
-2. Install the task:
-
 ```bash
 autoshell install daily-backup.yaml
-```
-
-3. Verify it's scheduled:
-
-```bash
 autoshell list
-autoshell status "Daily Backup"
-```
-
-4. Run it manually to test:
-
-```bash
 autoshell run "Daily Backup"
 ```
 
@@ -733,6 +788,26 @@ autoshell hub logout  # Removes saved token
 - **Unicode task names**: Non-ASCII characters are stripped from task IDs (file names use kebab-case)
 - **Concurrent installs**: Installing the same task concurrently may cause race conditions
 
+## Troubleshooting
+
+### Tasks Not Running During Sleep/Wake
+
+If your machine sleeps at scheduled task time, AutoShell's behavior depends on your OS:
+
+- **macOS**: launchd automatically runs missed tasks on wake (built-in, no config needed)
+- **Linux**: systemd catches up on wake via `Persistent=true` (built-in, no config needed)
+- **Windows**: Task Scheduler skips missed tasks unless `StartWhenAvailable` is enabled manually
+
+#### macOS Sleep Tip
+
+To ensure scheduled tasks run overnight without interruption:
+
+1. Open **System Settings** → **Energy Saver**
+2. Under "Power Adapter" or "Battery", find **"Prevent automatic sleeping when display is off"**
+3. Toggle **ON** if you want tasks to run while your machine sleeps
+
+This prevents your Mac from sleeping during scheduled task times, ensuring reliable execution.
+
 ## Contributing
 
 ### Development Setup
@@ -783,6 +858,16 @@ npm test                  # Run all tests
 npm run test:verbose      # Verbose output with spec reporter
 ```
 
+### Reporting Bugs
+
+When filing an issue, please include:
+- Your OS and version (e.g., macOS 15.2, Ubuntu 24.04)
+- Node.js version (`node --version`)
+- AutoShell version (`autoshell --version`)
+- Steps to reproduce the issue
+- Expected vs actual behavior
+- Relevant config file (with secrets redacted)
+
 ### Pull Request Process
 
 1. Fork the repo
@@ -805,6 +890,17 @@ npm run test:verbose      # Verbose output with spec reporter
 - `develop` — integration branch
 - `feature/*` — feature branches (PR to develop)
 
+## Security
+
+If you discover a security vulnerability, please **do not** open a public issue. Instead, email [chutien@gmail.com](mailto:chutien@gmail.com) with details. We'll respond within 48 hours.
+
+### Best Practices
+
+- Never commit secrets (API keys, tokens) in config files — use environment variable references (`${VAR}`) instead
+- AutoShell stores metadata and scripts in `~/.autoshell/` with restrictive file permissions
+- Generated expect scripts use `umask 077` for temporary files
+- macOS quarantine attributes are automatically removed from generated scripts to prevent Gatekeeper popups
+
 ## License
 
 [Apache-2.0](LICENSE)
@@ -812,5 +908,8 @@ npm run test:verbose      # Verbose output with spec reporter
 ## Links
 
 - **GitHub:** [github.com/vocweb/autoshell-cli](https://github.com/vocweb/autoshell-cli)
-- **Command Hub:** [hub.autoshell.dev](https://hub.autoshell.dev)
 - **Issues:** [github.com/vocweb/autoshell-cli/issues](https://github.com/vocweb/autoshell-cli/issues)
+
+---
+
+*Schedule it. Sleep on it. Wake up to results.*

@@ -15,7 +15,9 @@ import { paths, ensureDirs } from '../utils/paths.js';
 import { taskId } from '../utils/task-id.js';
 
 /**
- * Register the migrate command with commander program.
+ * Register the migrate command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerMigrateCommand(program) {
   program
@@ -32,7 +34,12 @@ export function registerMigrateCommand(program) {
 }
 
 /**
- * Parse multi-record file and split into per-task command files.
+ * Parse a multi-record config file and split each record into its own
+ * individual YAML file under ~/.autoshell/commands/.
+ * Also persists any top-level settings block to the global config.
+ *
+ * @param {string} file - Path to the legacy multi-record config file.
+ * @returns {Promise<void>}
  */
 async function runMigrate(file) {
   const config = await parseConfig(file);

@@ -1,7 +1,7 @@
 {
   "name": "autoshell",
   "version": "0.2.0",
-  "description": "Cross-platform CLI for managing scheduled shell command sets",
+  "description": "Schedule shell commands and AI agents (Claude, Aider, Cursor) to run overnight with auto-responder, rate limit recovery, and notifications. Cross-platform: macOS, Linux, Windows.",
   "type": "module",
   "bin": {
     "autoshell": "./src/index.js"
@@ -9,10 +9,14 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "files": [
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "test": "node --test __tests__/**/*.test.js",
-    "test:verbose": "node --test --test-reporter=spec __tests__/**/*.test.js",
-    "lint": "echo 'TODO: add linter'"
+    "test:verbose": "node --test --test-reporter=spec __tests__/**/*.test.js"
   },
   "dependencies": {
     "commander": "^12.1.0",
@@ -32,8 +36,17 @@
     "systemd",
     "cron",
     "shell",
-    "cross-platform"
+    "cross-platform",
+    "ai-agent",
+    "claude",
+    "aider",
+    "task-scheduler",
+    "rate-limit",
+    "auto-responder",
+    "scheduled-tasks",
+    "devops"
   ],
+  "author": "vocweb",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

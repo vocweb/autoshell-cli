@@ -196,7 +196,13 @@ export function parseWaitTime(line, extractConfig) {
 }
 
 /**
- * Save rate limit state for crash recovery.
+ * Persist rate limit state to disk for crash recovery.
+ * If the process is killed while waiting for a rate limit to expire,
+ * the saved state allows the next run to know it was paused.
+ *
+ * @param {string} taskId - Task identifier used as part of the filename.
+ * @param {object} state - State object with paused_at, resume_at, attempt fields.
+ * @returns {Promise<void>}
  */
 async function saveState(taskId, state) {
   try {
@@ -208,7 +214,11 @@ async function saveState(taskId, state) {
 }
 
 /**
- * Clear rate limit state file.
+ * Remove the persisted rate limit state file after a successful resume.
+ * Errors are silently ignored — the file may have already been removed.
+ *
+ * @param {string} taskId - Task identifier.
+ * @returns {Promise<void>}
  */
 async function clearState(taskId) {
   try {
@@ -236,7 +246,11 @@ export async function loadRateLimitState(taskId) {
 }
 
 /**
- * Create a no-op monitor (when no rate limit config provided).
+ * Create a no-op rate limit monitor used when rate limiting is not configured.
+ * Returns an object with the same interface as a real monitor but all methods
+ * are harmless stubs — avoids null checks at every call site.
+ *
+ * @returns {{ checkLine: () => false, cleanup: () => void, isPaused: () => false }}
  */
 function createNoop() {
   return {

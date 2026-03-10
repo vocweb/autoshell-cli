@@ -81,6 +81,10 @@ export async function launchInTerminal(scriptPath, terminalConfig = {}) {
 
 /**
  * Resolve a preset name to its configuration for the current platform.
+ *
+ * @param {string} name - Preset name (e.g. 'iterm2', 'alacritty').
+ * @param {string} platform - OS platform from getPlatform() ('darwin'|'linux'|'win32').
+ * @returns {object|null} Preset config object or null if not found.
  */
 function resolvePreset(name, platform) {
   const platformPresets = PRESETS[platform];
@@ -89,16 +93,25 @@ function resolvePreset(name, platform) {
 }
 
 /**
- * Launch using a resolved preset configuration.
+ * Launch a script using a resolved preset configuration.
+ *
+ * Handles three distinct launch strategies:
+ *   - macOS `open -a <App>` for app-bundle terminals (Terminal.app, iTerm2, Warp)
+ *   - Linux fallback chain to find the first available terminal binary
+ *   - Standard binary launch for all other presets
+ *
+ * @param {string} scriptPath - Absolute path to the script to execute.
+ * @param {object} preset - Resolved preset config from PRESETS.
+ * @param {object} config - Merged terminal config (program, profile, args).
+ * @param {string} platform - Current OS platform identifier.
+ * @returns {Promise<number>} PID of the spawned terminal process.
  */
 async function launchWithPreset(scriptPath, preset, config, platform) {
   // macOS: use `open -a <app>` method
   if (preset.method === 'open' && platform === 'darwin') {
-    const args = ['open', '-a', preset.app, '-n'];
-    if (config.args.length > 0) {
-      args.push('--args', ...config.args);
-    }
-    args.push('--args', scriptPath);
+    // Pass script path directly — quarantine removal + shebang handles execution
+    // Don't add /bin/bash: only Terminal.app interprets --args as commands, others (iTerm2) don't
+    const args = ['open', '-a', preset.app, '-n', '--args', scriptPath, ...config.args];
     return spawnDetached(args[0], args.slice(1));
   }
 
@@ -131,7 +144,12 @@ async function launchWithPreset(scriptPath, preset, config, platform) {
 }
 
 /**
- * Launch with a custom executable path.
+ * Launch a script using a fully-qualified custom executable path.
+ * Validates the executable exists before attempting to spawn.
+ *
+ * @param {string} scriptPath - Absolute path to the script to execute.
+ * @param {object} config - Terminal config with program (full path) and args.
+ * @returns {Promise<number>} PID of the spawned terminal process.
  */
 async function launchCustom(scriptPath, config) {
   await validateExecutable(config.program);
@@ -141,7 +159,12 @@ async function launchCustom(scriptPath, config) {
 }
 
 /**
- * Run script inline in the current terminal (no new window).
+ * Run a script inline in the current terminal session (no new window).
+ * Used when `new_window: false` is set in terminal config.
+ * Inherits stdin/stdout/stderr from the parent process.
+ *
+ * @param {string} scriptPath - Absolute path to the script to execute.
+ * @returns {Promise<number>} Exit code from the script.
  */
 function runInline(scriptPath) {
   const platform = getPlatform();
@@ -156,7 +179,13 @@ function runInline(scriptPath) {
 }
 
 /**
- * Spawn a detached process (for new terminal windows).
+ * Spawn a process in detached mode so it survives the parent CLI exiting.
+ * Used for new terminal window launches where the user continues working
+ * independently in the opened terminal.
+ *
+ * @param {string} bin - Executable name or absolute path.
+ * @param {string[]} args - Arguments to pass to the executable.
+ * @returns {number} PID of the spawned child process.
  */
 function spawnDetached(bin, args) {
   const child = spawn(bin, args, {
@@ -168,7 +197,12 @@ function spawnDetached(bin, args) {
 }
 
 /**
- * Validate that an executable exists on the system.
+ * Validate that an executable is available on the system PATH.
+ * Uses `which` on Unix and `where` on Windows.
+ *
+ * @param {string} name - Executable name to check.
+ * @returns {Promise<void>} Resolves if found.
+ * @throws {Error} If the executable is not found in PATH.
  */
 async function validateExecutable(name) {
   const cmd = getPlatform() === 'win32' ? 'where' : 'which';
@@ -180,7 +214,12 @@ async function validateExecutable(name) {
 }
 
 /**
- * Find the first available executable from a list (Linux fallback chain).
+ * Find the first available executable from a list of candidates.
+ * Used for the Linux default terminal fallback chain where no single
+ * terminal emulator is guaranteed to be installed.
+ *
+ * @param {string[]} candidates - Ordered list of executable names to try.
+ * @returns {Promise<string|null>} First found executable name, or null if none available.
  */
 async function findFirstAvailable(candidates) {
   for (const candidate of candidates) {

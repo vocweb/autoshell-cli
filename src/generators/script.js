@@ -21,7 +21,7 @@ export function generateScript(record, platform) {
 }
 
 /**
- * Generate a Bash script (macOS/Linux).
+ * Generate a Bash script for macOS/Linux.
  *
  * Features:
  * - set -euo pipefail (strict mode)
@@ -29,6 +29,9 @@ export function generateScript(record, platform) {
  * - cd with error handling (~ → $HOME)
  * - export with shell escaping
  * - interactive: expect with stdin fallback
+ *
+ * @param {object} record - Parsed and validated config record.
+ * @returns {string} Bash script content as a string.
  */
 function generateBash(record) {
   const lines = [];
@@ -105,47 +108,96 @@ function generateBash(record) {
 }
 
 /**
- * Generate Bash interactive section using expect with stdin fallback.
+ * Generate Bash lines for an interactive program block using expect with stdin fallback.
+ *
+ * Uses a temp expect file (not heredoc) so `interact` can work —
+ * heredoc redirects stdin away from the terminal, preventing user interaction.
+ * Fallback uses process substitution `< <(sleep; echo; cat)` to keep stdin open.
+ *
+ * Key design decisions:
+ * - Resolve program full path via `command -v` before expect (launchd/systemd
+ *   may not have user PATH; profiles may skip PATH setup for non-interactive shells)
+ * - Use printf for spawn line (needs resolved path), heredoc for rest (literal Tcl)
+ * - Wait for program output to settle (3s silence) before sending input,
+ *   instead of matching first output which fires too early for TUI apps
+ *
+ * @param {object} block - Interactive program block from the config record.
+ * @param {string} block.program - Program name to spawn.
+ * @param {string[]} [block.args] - Arguments to pass to the program.
+ * @param {string[]} block.inputs - Text inputs to send after program starts.
+ * @param {Array<{prompt: string, response: string}>} [block.auto_responses] - Prompt/response pairs.
+ * @returns {string[]} Array of Bash script lines for this interactive block.
  */
 function generateBashInteractive(block) {
   const lines = [];
-  const inputLines = block.inputs.map((inp) => `  send "${escapeShell(inp)}\\r"`).join('\n');
+  // Quote each arg with Tcl curly braces for expect spawn context
+  const spawnArgs = block.args && block.args.length > 0
+    ? ' ' + block.args.map((a) => `{${a}}`).join(' ')
+    : '';
+  const fallbackArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
 
-  // expect approach
+  // Resolve program full path — profiles may not load in launchd/expect context
+  lines.push(`_PROG_PATH="$(command -v ${block.program} 2>/dev/null || which ${block.program} 2>/dev/null || echo ${block.program})"`);
+
+  // expect approach — temp file enables `interact` (heredoc breaks it)
   lines.push('if command -v expect &>/dev/null; then');
-  lines.push("  expect <<'EXPECT_SCRIPT'");
-  const spawnArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
-  lines.push(`  spawn ${block.program}${spawnArgs}`);
+  lines.push('  _EXPECT_SCRIPT="$(mktemp /tmp/autoshell_expect_XXXXXX.exp)"');
+  lines.push('  trap \'rm -f "$_EXPECT_SCRIPT"\' EXIT INT TERM');
+
+  // Write expect script: spawn line uses resolved path (printf), rest is literal Tcl
+  lines.push('  (umask 077;');
+  lines.push(`    printf 'spawn %s${spawnArgs}\\n' "$_PROG_PATH" > "$_EXPECT_SCRIPT"`);
+  lines.push("    cat >> \"$_EXPECT_SCRIPT\" <<'EXPECT_SCRIPT'");
 
   // Auto-responses: wait for prompt → send response
   if (block.auto_responses && block.auto_responses.length > 0) {
     for (const ar of block.auto_responses) {
-      lines.push(`  expect "${escapeShell(ar.prompt)}"`);
-      lines.push(`  send "${escapeShell(ar.response)}\\r"`);
+      lines.push(`expect "${escapeShell(ar.prompt)}"`);
+      lines.push(`send "${escapeShell(ar.response)}\\r"`);
     }
   }
 
-  // Scheduled inputs
-  for (const inp of block.inputs) {
-    lines.push(`  expect -timeout 30 -re ".+"`);
-    lines.push(`  send "${escapeShell(inp)}\\r"`);
+  // Wait for program output to settle (3s of silence = initialization complete)
+  // This prevents sending input while TUI apps are still rendering startup UI
+  lines.push('set timeout 3');
+  lines.push('expect {');
+  lines.push('  -re ".+" { exp_continue }');
+  lines.push('  timeout { }');
+  lines.push('}');
+
+  // Send scheduled inputs — split text and Enter to give TUI apps time to process
+  for (let i = 0; i < block.inputs.length; i++) {
+    lines.push(`send "${escapeShell(block.inputs[i])}"`);
+    lines.push('sleep 0.5');
+    lines.push('send "\\r"');
+    // Wait for output to settle between inputs (skip after last)
+    if (i < block.inputs.length - 1) {
+      lines.push('set timeout 3');
+      lines.push('expect {');
+      lines.push('  -re ".+" { exp_continue }');
+      lines.push('  timeout { }');
+      lines.push('}');
+    }
   }
 
-  lines.push('  expect eof');
+  // interact hands control to user — program stays alive
+  lines.push('interact');
   lines.push('EXPECT_SCRIPT');
+  lines.push('  )');
+  lines.push('  (set +e; expect -f "$_EXPECT_SCRIPT"; _EC=$?; rm -f "$_EXPECT_SCRIPT"; exit $_EC)');
 
-  // Fallback: stdin redirect
+  // Fallback: no expect — process substitution keeps stdin open
+  // sleep 5 gives program time to initialize before receiving input
   lines.push('else');
-  const inputStr = block.inputs.join('\n');
-  const fallbackArgs = block.args && block.args.length > 0 ? ' ' + block.args.join(' ') : '';
-  lines.push(`  echo "${escapeShell(inputStr)}" | ${block.program}${fallbackArgs}`);
+  const inputStr = block.inputs.join('\\n');
+  lines.push(`  "$_PROG_PATH"${fallbackArgs} < <(sleep 5; echo -e "${escapeShell(inputStr)}"; cat)`);
   lines.push('fi');
 
   return lines;
 }
 
 /**
- * Generate a Bat script (Windows).
+ * Generate a Windows Batch (.bat) script.
  *
  * Features:
  * - @echo off + setlocal EnableDelayedExpansion
@@ -153,7 +205,10 @@ function generateBashInteractive(block) {
  * - if errorlevel 1 after each command
  * - cd /d with %USERPROFILE% for ~
  * - Interactive: temp file + input redirect
- * - CRLF line endings
+ * - CRLF line endings (\r\n)
+ *
+ * @param {object} record - Parsed and validated config record.
+ * @returns {string} Batch script content with CRLF line endings.
  */
 function generateBat(record) {
   const lines = [];
@@ -227,7 +282,16 @@ function generateBat(record) {
 }
 
 /**
- * Generate Bat interactive section using temp file + input redirect.
+ * Generate Batch lines for an interactive program block.
+ * Writes all inputs to a temp file then redirects it into the program's stdin.
+ * Unlike Bash's expect approach, Windows has no native PTY automation tool,
+ * so stdin redirection is the best cross-machine option.
+ *
+ * @param {object} block - Interactive program block from the config record.
+ * @param {string} block.program - Program executable name.
+ * @param {string[]} [block.args] - Arguments to pass to the program.
+ * @param {string[]} block.inputs - Text inputs to send to the program.
+ * @returns {string[]} Array of Batch script lines for this interactive block.
  */
 function generateBatInteractive(block) {
   const lines = [];
@@ -253,28 +317,47 @@ function generateBatInteractive(block) {
 }
 
 /**
- * Replace ~ with $HOME for Bash scripts.
- * Non-interactive shells don't expand ~ automatically.
+ * Replace a leading ~ with $HOME for use in Bash scripts.
+ * Non-interactive shells (launchd, systemd) don't expand ~ automatically,
+ * so the substitution must happen in the generated script itself.
+ *
+ * @param {string} path - Directory path, possibly starting with ~.
+ * @returns {string} Path with ~ replaced by $HOME.
  */
 function expandHomeBash(path) {
   return path.replace(/^~(?=\/|$)/, '$HOME');
 }
 
 /**
- * Replace ~ with %USERPROFILE% for Windows scripts.
+ * Replace a leading ~ with %USERPROFILE% and normalize slashes for Windows Batch scripts.
+ * schtasks may not expand ~ and uses backslashes as the path separator.
+ *
+ * @param {string} path - Directory path, possibly starting with ~.
+ * @returns {string} Windows-normalized path with %USERPROFILE% substituted.
  */
 function expandHomeWindows(path) {
   return path.replace(/^~(?=\/|\\|$)/, '%USERPROFILE%').replace(/\//g, '\\');
 }
 
 /**
- * Escape special characters for shell strings (double-quoted context).
+ * Escape special Batch metacharacters for use in echo statements.
+ * Escapes: % → %%, and & | < > ^ → ^& ^| ^< ^> ^^
+ *
+ * @param {string} str - Input string.
+ * @returns {string} Escaped string safe for Batch echo commands.
  */
 function escapeBat(str) {
   // Escape Bat special characters: & | < > ^ %
   return str.replace(/%/g, '%%').replace(/([&|<>^])/g, '^$1');
 }
 
+/**
+ * Escape special characters for use inside double-quoted Bash strings.
+ * Escapes: backslash, double-quote, $, backtick, newline, carriage return.
+ *
+ * @param {string} str - Input string.
+ * @returns {string} Escaped string safe for Bash double-quoted contexts.
+ */
 function escapeShell(str) {
   return str
     .replace(/\\/g, '\\\\')

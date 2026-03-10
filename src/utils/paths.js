@@ -36,6 +36,10 @@ export const paths = {
 
 /**
  * Ensure all required directories exist, creating them recursively if needed.
+ * Called at startup and before any write operation that requires the dirs.
+ * Uses mkdirSync with recursive:true so it is safe to call multiple times.
+ *
+ * @returns {void}
  */
 export function ensureDirs() {
   for (const dir of [paths.commands, paths.scripts, paths.logs, paths.meta]) {

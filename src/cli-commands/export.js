@@ -11,7 +11,9 @@ import YAML from 'yaml';
 import { loadAllMeta } from '../utils/metadata.js';
 
 /**
- * Register the export command with commander program.
+ * Register the export command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerExportCommand(program) {
   program
@@ -29,7 +31,10 @@ export function registerExportCommand(program) {
 }
 
 /**
- * Export all installed tasks as YAML.
+ * Export all installed tasks as YAML, writing to file or stdout.
+ *
+ * @param {{ output?: string }} options - Commander options.
+ * @returns {Promise<void>}
  */
 async function runExport(options) {
   const allMeta = await loadAllMeta();
