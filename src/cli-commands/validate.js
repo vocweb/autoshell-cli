@@ -12,7 +12,9 @@ import { parseConfig } from '../config/parser.js';
 import { paths } from '../utils/paths.js';
 
 /**
- * Register the validate command with commander program.
+ * Register the validate command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerValidateCommand(program) {
   program

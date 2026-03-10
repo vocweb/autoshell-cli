@@ -9,7 +9,9 @@ import chalk from 'chalk';
 import { loadAllMeta } from '../utils/metadata.js';
 
 /**
- * Register the list command with commander program.
+ * Register the list command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerListCommand(program) {
   program
@@ -28,7 +30,10 @@ export function registerListCommand(program) {
 }
 
 /**
- * Execute the list workflow.
+ * Execute the list workflow, rendering a table or JSON output.
+ *
+ * @param {{ json?: boolean }} options - Commander options.
+ * @returns {Promise<void>}
  */
 async function runList(options) {
   const allMeta = await loadAllMeta();
@@ -69,7 +74,10 @@ async function runList(options) {
 }
 
 /**
- * Format a schedule object into a human-readable string.
+ * Format a schedule object into a human-readable string for table display.
+ *
+ * @param {object|null} schedule - Schedule config object.
+ * @returns {string} Human-readable schedule description.
  */
 function formatSchedule(schedule) {
   if (!schedule) return 'unknown';
@@ -89,7 +97,12 @@ function formatSchedule(schedule) {
 }
 
 /**
- * Pad a string to a fixed width for table alignment.
+ * Pad a string to a fixed width for table column alignment.
+ * Truncates strings that exceed the target width.
+ *
+ * @param {string} str - Input string.
+ * @param {number} width - Target column width in characters.
+ * @returns {string} Padded or truncated string of exactly `width` characters.
  */
 function padRight(str, width) {
   const s = String(str || '');

@@ -92,7 +92,14 @@ export async function isInstalled(taskId) {
 }
 
 /**
- * Generate a launchd plist XML string.
+ * Generate a launchd plist XML string for a scheduled task.
+ * Handles terminal launch mode, schedule, env vars, and log paths.
+ *
+ * @param {string} label - Full launchd label (e.g. "com.autoshell.my-task").
+ * @param {object} record - Parsed config record with schedule, env, terminal, etc.
+ * @param {string} scriptPath - Absolute path to the generated shell script.
+ * @param {string} logDir - Directory for stdout/stderr log files.
+ * @returns {string} Complete plist XML string.
  */
 function generatePlist(label, record, scriptPath, logDir) {
   const lines = [];
@@ -160,9 +167,11 @@ function generatePlist(label, record, scriptPath, logDir) {
 }
 
 /**
- * Build StartCalendarInterval from schedule config.
+ * Build a launchd StartCalendarInterval plist XML fragment from a schedule config.
+ * Weekly and multi-weekday schedules produce an <array> of <dict> entries.
  *
- * @returns {string|null} Plist XML fragment or null for unsupported types.
+ * @param {object} schedule - Schedule config object (type, time, date, weekdays, cron).
+ * @returns {string|null} Plist XML fragment string, or null for unsupported schedule types.
  */
 function buildCalendarInterval(schedule) {
   const [hour, minute] = (schedule.time || '00:00').split(':').map(Number);
@@ -201,8 +210,12 @@ function buildCalendarInterval(schedule) {
 }
 
 /**
- * Parse a simple cron expression to StartCalendarInterval.
- * Supports basic patterns like "0 9 * * *" (daily) or "0 9 * * 1-5" (weekdays).
+ * Parse a simple 5-field cron expression into a launchd StartCalendarInterval XML fragment.
+ * Supports basic patterns: "0 9 * * *" (daily), "0 9 * * 1-5" (weekday range).
+ * Returns null for unsupported patterns (e.g. non-5-field expressions).
+ *
+ * @param {string} cron - Standard 5-field cron expression.
+ * @returns {string|null} Plist XML fragment string, or null if parsing fails.
  */
 function parseCronToCalendar(cron) {
   const parts = cron.trim().split(/\s+/);
@@ -234,7 +247,11 @@ function parseCronToCalendar(cron) {
 }
 
 /**
- * Build a plist <dict> XML fragment from key-integer pairs.
+ * Build a plist <dict> XML fragment from an object of key-integer pairs.
+ * Used to construct calendar interval dicts for Hour, Minute, Weekday, etc.
+ *
+ * @param {Record<string, number>} obj - Key-integer mapping.
+ * @returns {string} Indented plist <dict>...</dict> XML string.
  */
 function dictXml(obj) {
   const lines = ['  <dict>'];
@@ -247,7 +264,12 @@ function dictXml(obj) {
 }
 
 /**
- * Add a <key><string> pair to plist lines.
+ * Append a plist <key><string> element pair to an array of lines.
+ *
+ * @param {string[]} lines - Lines array to append to.
+ * @param {string} key - Plist key name.
+ * @param {string} value - String value (will be XML-escaped).
+ * @param {string} [indent='  '] - Indentation prefix.
  */
 function addKeyString(lines, key, value, indent = '  ') {
   lines.push(`${indent}<key>${escapeXml(key)}</key>`);
@@ -275,7 +297,11 @@ function resolveTerminalApp(program = 'default') {
 }
 
 /**
- * Escape special XML characters.
+ * Escape special XML characters for safe embedding in plist attribute values and text nodes.
+ * Replaces: & → &amp;, < → &lt;, > → &gt;, " → &quot;
+ *
+ * @param {string} str - Raw string to escape.
+ * @returns {string} XML-safe string.
  */
 function escapeXml(str) {
   return str
@@ -286,7 +312,12 @@ function escapeXml(str) {
 }
 
 /**
- * Silently unload a plist via launchctl (ignore errors).
+ * Silently unload a plist from launchd via launchctl.
+ * Errors are suppressed — the plist may not be loaded or may not exist,
+ * which is a normal state during the install-overwrite flow.
+ *
+ * @param {string} plistPath - Absolute path to the plist file.
+ * @returns {Promise<void>}
  */
 async function unloadQuietly(plistPath) {
   try {

@@ -6,6 +6,20 @@
  * Any field specified by the user overrides the preset default.
  */
 
+/**
+ * Built-in rate limit preset configurations keyed by agent name.
+ * Each preset defines detection pattern, optional wait-time extraction,
+ * polling behavior, and a resume command (if the agent needs one).
+ *
+ * @type {Record<string, {
+ *   detect_pattern: string,
+ *   extract_wait_time: {pattern: string, format: string}|null,
+ *   polling_interval_minutes?: number,
+ *   resume_command: string|null,
+ *   max_wait_minutes: number,
+ *   on_hang_timeout?: number
+ * }>}
+ */
 export const PRESETS = {
   // Claude Code — no reset time shown, uses polling
   'claude-code': {

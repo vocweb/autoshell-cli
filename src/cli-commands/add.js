@@ -11,7 +11,9 @@ import { parseConfig } from '../config/parser.js';
 import { paths, ensureDirs } from '../utils/paths.js';
 
 /**
- * Register the add command with commander program.
+ * Register the add command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerAddCommand(program) {
   program
@@ -28,7 +30,10 @@ export function registerAddCommand(program) {
 }
 
 /**
- * Validate and copy file to commands directory.
+ * Validate and copy a config file to the commands directory.
+ *
+ * @param {string} file - Path to the config file to add.
+ * @returns {Promise<void>}
  */
 async function runAdd(file) {
   // Validate first

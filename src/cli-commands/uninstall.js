@@ -12,7 +12,9 @@ import { taskId } from '../utils/task-id.js';
 import { loadAllMeta, deleteMeta, findMetaByName } from '../utils/metadata.js';
 
 /**
- * Register the uninstall command with commander program.
+ * Register the uninstall command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerUninstallCommand(program) {
   program
@@ -30,7 +32,11 @@ export function registerUninstallCommand(program) {
 }
 
 /**
- * Execute the uninstall workflow.
+ * Execute the uninstall workflow for one task or all tasks.
+ *
+ * @param {string|undefined} name - Task name to uninstall, or undefined when using --all.
+ * @param {{ all?: boolean }} options - Commander options.
+ * @returns {Promise<void>}
  */
 async function runUninstall(name, options) {
   const scheduler = await getScheduler();
@@ -67,7 +73,12 @@ async function runUninstall(name, options) {
 }
 
 /**
- * Remove a single task: unregister scheduler, delete script, delete metadata.
+ * Remove a single task: unregister from the OS scheduler, delete the generated
+ * script file, and erase the metadata record.
+ *
+ * @param {object} meta - Task metadata object.
+ * @param {object} scheduler - Scheduler module (launchd/systemd/task-scheduler).
+ * @returns {Promise<void>}
  */
 async function removeSingleTask(meta, scheduler) {
   const id = meta.taskId || taskId(meta.name);

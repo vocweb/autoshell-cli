@@ -15,7 +15,9 @@ import { taskId } from '../utils/task-id.js';
 import { deleteMeta, findMetaByName } from '../utils/metadata.js';
 
 /**
- * Register the remove command with commander program.
+ * Register the remove command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerRemoveCommand(program) {
   program
@@ -32,7 +34,11 @@ export function registerRemoveCommand(program) {
 }
 
 /**
- * Find command file by name, uninstall task, delete file.
+ * Locate a command file by task name, uninstall the associated scheduler
+ * entry, and delete both the script and the command file from disk.
+ *
+ * @param {string} name - Human-readable task name to remove.
+ * @returns {Promise<void>}
  */
 async function runRemove(name) {
   // Find command file matching this name
@@ -64,7 +70,11 @@ async function runRemove(name) {
 }
 
 /**
- * Search commands/ for a file containing a record with the given name.
+ * Search the commands directory for a YAML/JSON file containing a record
+ * with the given task name. Supports both single-record and multi-record formats.
+ *
+ * @param {string} name - Task name to search for.
+ * @returns {Promise<string|null>} Absolute file path, or null if not found.
  */
 async function findCommandFile(name) {
   try {

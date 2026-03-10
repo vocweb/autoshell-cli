@@ -62,7 +62,11 @@ export function validateConfig(config) {
 }
 
 /**
- * Validate the optional top-level settings block.
+ * Validate the optional top-level settings block (terminal, notifications, etc.).
+ * Pushes human-readable error strings into the errors array.
+ *
+ * @param {object} settings - Top-level settings object from the config.
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateSettings(settings, errors) {
   if (typeof settings !== 'object') {
@@ -86,7 +90,12 @@ function validateSettings(settings, errors) {
 }
 
 /**
- * Validate a single record within the records array.
+ * Validate a single task record: name, schedule, commands, env, logging,
+ * interactive, and notifications sections.
+ *
+ * @param {object} record - A single task record object.
+ * @param {string} prefix - Error prefix for this record (e.g. "records[0]").
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateRecord(record, prefix, errors) {
   if (!record || typeof record !== 'object') {
@@ -137,6 +146,12 @@ function validateRecord(record, prefix, errors) {
 
 /**
  * Validate the schedule block of a record.
+ * Enforces type-specific requirements: time for non-cron, date for once,
+ * weekdays for weekly, and cron expression for cron type.
+ *
+ * @param {object} schedule - Schedule config object.
+ * @param {string} prefix - Record-level error prefix (e.g. "records[0]").
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateSchedule(schedule, prefix, errors) {
   const p = `${prefix}.schedule`;
@@ -182,7 +197,12 @@ function validateSchedule(schedule, prefix, errors) {
 }
 
 /**
- * Validate the logging block.
+ * Validate the optional logging block within a record.
+ * Checks max_size format (e.g. "10MB") and retention is a positive integer.
+ *
+ * @param {object} logging - Logging config object.
+ * @param {string} prefix - Record-level error prefix.
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateLogging(logging, prefix, errors) {
   const p = `${prefix}.logging`;
@@ -204,7 +224,13 @@ function validateLogging(logging, prefix, errors) {
 }
 
 /**
- * Validate the interactive block (array of interactive program configs).
+ * Validate the interactive block — an array of interactive program configs.
+ * Each item must have a program string, a non-empty inputs array, and optionally
+ * valid auto_responses and rate_limit blocks.
+ *
+ * @param {object[]} interactive - Array of interactive program config objects.
+ * @param {string} prefix - Record-level error prefix.
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateInteractive(interactive, prefix, errors) {
   const p = `${prefix}.interactive`;
@@ -252,7 +278,13 @@ function validateInteractive(interactive, prefix, errors) {
 }
 
 /**
- * Validate the rate_limit block within an interactive item.
+ * Validate the rate_limit block within an interactive program item.
+ * Requires detect_pattern unless a preset is specified.
+ * Validates action, extract_wait_time format, and max_wait_minutes.
+ *
+ * @param {object} rateLimit - Rate limit config object.
+ * @param {string} prefix - Interactive item-level error prefix (e.g. "records[0].interactive[0]").
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateRateLimit(rateLimit, prefix, errors) {
   const p = `${prefix}.rate_limit`;
@@ -286,7 +318,13 @@ function validateRateLimit(rateLimit, prefix, errors) {
 }
 
 /**
- * Validate the notifications block.
+ * Validate the notifications block within a record.
+ * Checks channel type membership and type-specific required fields
+ * (webhook_url for slack/discord, to for email, url for webhook).
+ *
+ * @param {object} notifications - Notifications config object.
+ * @param {string} prefix - Record-level error prefix.
+ * @param {string[]} errors - Mutable errors array to push messages into.
  */
 function validateNotifications(notifications, prefix, errors) {
   const p = `${prefix}.notifications`;

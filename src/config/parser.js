@@ -60,7 +60,11 @@ export function parseConfigString(content, format = 'yaml') {
 }
 
 /**
- * Load content from a local file or URL.
+ * Load raw text content from a local file path or an HTTP(S) URL.
+ *
+ * @param {string} source - File path or URL.
+ * @returns {Promise<string>} Raw file/response text.
+ * @throws {Error} If the file cannot be read or the HTTP response is not OK.
  */
 async function loadSource(source) {
   if (isUrl(source)) {
@@ -79,8 +83,12 @@ async function loadSource(source) {
 }
 
 /**
- * Detect config format from source path/URL extension.
- * Defaults to .yaml if extension is ambiguous.
+ * Detect config format from a source path or URL file extension.
+ * Strips query parameters before inspecting the extension.
+ * Defaults to '.yaml' for unrecognized extensions.
+ *
+ * @param {string} source - File path or URL.
+ * @returns {'.yaml'|'.json'} Detected format extension.
  */
 function detectFormat(source) {
   // Strip query params for URL
@@ -95,7 +103,12 @@ function detectFormat(source) {
 }
 
 /**
- * Parse content string based on detected format.
+ * Parse a raw content string as YAML or JSON based on the detected extension.
+ *
+ * @param {string} content - Raw file content.
+ * @param {'.yaml'|'.json'} ext - Format extension from detectFormat().
+ * @returns {object} Parsed JavaScript object.
+ * @throws {Error} If parsing fails (e.g. malformed YAML/JSON).
  */
 function parseContent(content, ext) {
   try {
@@ -110,11 +123,14 @@ function parseContent(content, ext) {
 }
 
 /**
- * Normalize raw parsed config into the standard shape.
+ * Normalize raw parsed config into the standard internal shape.
+ * Handles two input formats:
+ * - Multi-record:  `{ records: [...], settings: {...} }` — used as-is.
+ * - Single-record: `{ name: "...", schedule: {...}, ... }` — wrapped in a records array.
  *
- * Handles two formats:
- * - Multi-record: `{ records: [...], settings: {...} }`
- * - Single-record: `{ name: "...", schedule: {...}, ... }` → wrapped in records array
+ * @param {object} raw - Raw parsed config object.
+ * @returns {{ settings: object, records: object[] }} Normalized config.
+ * @throws {Error} If raw is not a non-null object.
  */
 function normalizeConfig(raw) {
   if (!raw || typeof raw !== 'object') {
@@ -145,7 +161,11 @@ function normalizeConfig(raw) {
 }
 
 /**
- * Apply default values to all records in the config.
+ * Mutate the config in-place by applying default values to records and settings.
+ * Handles: enabled, logging, interactive normalization, rate_limit shorthand,
+ * and notification defaults.
+ *
+ * @param {{ settings: object, records: object[] }} config - Normalized config to mutate.
  */
 function applyDefaults(config) {
   if (!config.settings) {
@@ -199,7 +219,10 @@ function applyDefaults(config) {
 }
 
 /**
- * Check if a source string looks like a URL.
+ * Check whether a source string is an HTTP or HTTPS URL.
+ *
+ * @param {string} source - Source path or URL string.
+ * @returns {boolean} True if source starts with http:// or https://.
  */
 function isUrl(source) {
   return source.startsWith('http://') || source.startsWith('https://');

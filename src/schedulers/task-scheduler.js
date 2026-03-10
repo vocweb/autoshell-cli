@@ -88,7 +88,15 @@ export async function isInstalled(taskId) {
 }
 
 /**
- * Build schtasks /create arguments from schedule config.
+ * Build the schtasks /create command argument array from a schedule config.
+ * Wraps the script in a terminal command when terminal.new_window is enabled.
+ * Cron schedules fall back to DAILY using the extracted hour:minute.
+ *
+ * @param {string} taskName - Full schtasks task name (e.g. "AutoShell_my-task").
+ * @param {object} schedule - Schedule config object (type, time, date, weekdays, cron).
+ * @param {string} scriptPath - Absolute path to the generated .bat script.
+ * @param {object|undefined} terminal - Optional terminal config from the record.
+ * @returns {string[]} Array of schtasks CLI arguments.
  */
 function buildCreateArgs(taskName, schedule, scriptPath, terminal) {
   // Wrap in terminal command if configured (opens new window for interactive tasks)

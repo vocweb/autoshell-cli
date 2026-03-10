@@ -28,6 +28,11 @@ import { registerMigrateCommand } from './cli-commands/migrate.js';
 import { registerEditCommand } from './cli-commands/edit.js';
 import { registerHubCommand } from './cli-commands/hub.js';
 
+/**
+ * Root Commander program instance.
+ * All sub-commands are registered via their respective register* functions
+ * so each command module owns its own argument definitions and action handlers.
+ */
 const program = new Command();
 
 program
@@ -35,7 +40,7 @@ program
   .description('Cross-platform CLI for managing scheduled shell command sets')
   .version(pkg.version);
 
-// Core commands (Phase 05)
+// Core commands — install, uninstall, list, status, run, logs
 registerInstallCommand(program);
 registerUninstallCommand(program);
 registerListCommand(program);
@@ -43,7 +48,7 @@ registerStatusCommand(program);
 registerRunCommand(program);
 registerLogsCommand(program);
 
-// Advanced commands (Phase 12)
+// Advanced commands — create, export, validate, add, remove, migrate, edit
 registerCreateCommand(program);
 registerExportCommand(program);
 registerValidateCommand(program);
@@ -52,7 +57,8 @@ registerRemoveCommand(program);
 registerMigrateCommand(program);
 registerEditCommand(program);
 
-// Hub commands (Phase 13)
+// Hub commands — search, install, publish, update, login, logout
 registerHubCommand(program);
 
+// Parse process.argv and dispatch to the matching command handler
 program.parse();

@@ -16,7 +16,9 @@ import { findMetaByName, loadAllMeta } from '../utils/metadata.js';
 import { taskId } from '../utils/task-id.js';
 
 /**
- * Register the logs command with commander program.
+ * Register the logs command with the commander program.
+ *
+ * @param {import('commander').Command} program - Commander program instance.
  */
 export function registerLogsCommand(program) {
   program
@@ -36,7 +38,12 @@ export function registerLogsCommand(program) {
 }
 
 /**
- * Execute the logs workflow.
+ * Execute the logs workflow for one or all tasks.
+ * Without a name, displays the latest logs from every installed task.
+ *
+ * @param {string|undefined} name - Task name, or undefined to show all.
+ * @param {{ lines: string, errors?: boolean, follow?: boolean }} options - Commander options.
+ * @returns {Promise<void>}
  */
 async function runLogs(name, options) {
   if (!name) {
@@ -63,7 +70,12 @@ async function runLogs(name, options) {
 }
 
 /**
- * Display logs for a specific task.
+ * Display log output for a specific task from its log directory.
+ * Respects error-filter and line-limit options.
+ *
+ * @param {string} id - URL-safe task identifier.
+ * @param {{ lines: string, errors?: boolean, follow?: boolean }} options - Display options.
+ * @returns {Promise<void>}
  */
 async function showTaskLogs(id, options) {
   const logDir = join(paths.logs, id);
@@ -116,8 +128,12 @@ async function showTaskLogs(id, options) {
 }
 
 /**
- * Follow a log file in real-time (similar to tail -f).
- * Blocks until Ctrl+C.
+ * Follow a log file in real-time, printing new bytes as they arrive.
+ * Prints the last 10 existing lines first, then watches for new writes.
+ * Blocks the process until the user presses Ctrl+C (SIGINT).
+ *
+ * @param {string} filePath - Absolute path to the log file to follow.
+ * @returns {Promise<never>} Never resolves — process exits on SIGINT.
  */
 async function followLog(filePath) {
   console.log(chalk.dim(`Following ${filePath} (Ctrl+C to stop)...\n`));

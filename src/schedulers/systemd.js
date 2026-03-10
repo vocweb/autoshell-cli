@@ -108,7 +108,15 @@ export async function isInstalled(taskId) {
 }
 
 /**
- * Generate a systemd .service unit file (Type=oneshot).
+ * Generate a systemd .service unit file (Type=oneshot) for a task.
+ * Sets WorkingDirectory to %h (home) to avoid permission issues;
+ * the generated script handles the actual cd to working_dir.
+ *
+ * @param {string} unitName - Systemd unit name (e.g. "autoshell-my-task").
+ * @param {object} record - Parsed config record.
+ * @param {string} scriptPath - Absolute path to the generated shell script.
+ * @param {string} logDir - Directory for stdout/stderr log files.
+ * @returns {string} Systemd service unit file content.
  */
 function generateService(unitName, record, scriptPath, logDir) {
   const lines = [];
@@ -149,7 +157,12 @@ function generateService(unitName, record, scriptPath, logDir) {
 }
 
 /**
- * Generate a systemd .timer unit file.
+ * Generate a systemd .timer unit file that triggers the corresponding .service.
+ * Sets Persistent=true so missed triggers (e.g. system was off) run at next boot.
+ *
+ * @param {string} unitName - Systemd unit name (e.g. "autoshell-my-task").
+ * @param {object} record - Parsed config record (used for description and schedule).
+ * @returns {string} Systemd timer unit file content.
  */
 function generateTimer(unitName, record) {
   const lines = [];
@@ -251,8 +264,9 @@ export function cronToCalendar(cron) {
 }
 
 /**
- * Resolve terminal preset name to Linux executable.
- * Falls back to x-terminal-emulator for unknown presets.
+ * Resolve a terminal preset name to a Linux terminal emulator executable.
+ * Falls back to x-terminal-emulator (Debian/Ubuntu alternative system) for unknowns.
+ * gnome-terminal uses '--' as its exec separator instead of '-e'.
  *
  * @param {string} [program='default'] - Preset name or binary path.
  * @returns {string} Terminal binary name.
