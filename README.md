@@ -868,6 +868,10 @@ When filing an issue, please include:
 - Expected vs actual behavior
 - Relevant config file (with secrets redacted)
 
+### Questions & Ideas
+
+Not sure where to start? Have a feature idea? Join [GitHub Discussions](https://github.com/vocweb/autoshell-cli/discussions) — we'll help you find the right issue or refine your proposal.
+
 ### Pull Request Process
 
 1. Fork the repo
@@ -908,6 +912,7 @@ If you discover a security vulnerability, please **do not** open a public issue.
 ## Links
 
 - **GitHub:** [github.com/vocweb/autoshell-cli](https://github.com/vocweb/autoshell-cli)
+- **Discussions:** [github.com/vocweb/autoshell-cli/discussions](https://github.com/vocweb/autoshell-cli/discussions) — questions, ideas, show your setup
 - **Issues:** [github.com/vocweb/autoshell-cli/issues](https://github.com/vocweb/autoshell-cli/issues)
 
 ---
