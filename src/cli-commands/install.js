@@ -26,8 +26,11 @@ export function registerInstallCommand(program) {
   program
     .command('install [source]')
     .description('Install tasks from config file, URL, or ~/.autoshell/commands/')
-    .option('--dry-run', 'Show what would be done without executing')
+    .option('--dry-run', 'Preview what would be done without executing')
+    .option('--preview', 'Alias for --dry-run')
+    .option('-n', 'Alias for --dry-run')
     .option('--force', 'Overwrite existing tasks without prompting')
+    .option('--format <format>', 'Output format: text or json', 'text')
     .action(async (source, options) => {
       try {
         await runInstall(source, options);
@@ -59,6 +62,14 @@ async function runInstall(source, options) {
     return;
   }
 
+  // Dry-run: render rich preview and exit early
+  const isDryRun = options.dryRun || options.preview || options.n;
+  if (isDryRun) {
+    const { renderInstallPreview } = await import('../renderers/dry-run-renderer.js');
+    await renderInstallPreview(configs, platform, options.format);
+    return;
+  }
+
   const scheduler = await getScheduler();
   let installed = 0;
   let skipped = 0;
@@ -72,22 +83,6 @@ async function runInstall(source, options) {
 
       const id = taskId(record.name);
       const scriptPath = join(paths.scripts, `${id}${ext}`);
-
-      // Check if already installed
-      if (!options.force) {
-        const existing = await loadMeta(id);
-        if (existing) {
-          console.log(chalk.yellow(`  Skip: "${record.name}" (already installed, use --force to overwrite)`));
-          skipped++;
-          continue;
-        }
-      }
-
-      if (options.dryRun) {
-        console.log(chalk.cyan(`  [dry-run] Would install: "${record.name}" → ${scriptPath}`));
-        installed++;
-        continue;
-      }
 
       // Generate and write script
       const script = generateScript(record, platform);
@@ -123,7 +118,6 @@ async function runInstall(source, options) {
   // Summary
   const parts = [`${installed} task(s) installed`];
   if (skipped > 0) parts.push(`${skipped} skipped`);
-  if (options.dryRun) parts.unshift('[dry-run]');
   console.log(chalk.bold(`\n${parts.join(', ')}`));
 
   // Platform-specific advisory hints

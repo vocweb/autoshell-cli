@@ -27,9 +27,13 @@ export function registerRunCommand(program) {
   program
     .command('run <name>')
     .description('Run a task immediately (bypass schedule)')
-    .action(async (name) => {
+    .option('--dry-run', 'Preview what would be executed without running')
+    .option('--preview', 'Alias for --dry-run')
+    .option('-n', 'Alias for --dry-run')
+    .option('--format <format>', 'Output format: text or json', 'text')
+    .action(async (name, options) => {
       try {
-        await runTask(name);
+        await runTask(name, options);
       } catch (err) {
         console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
@@ -41,8 +45,9 @@ export function registerRunCommand(program) {
  * Execute a task's script immediately after validating its metadata.
  *
  * @param {string} name - Human-readable task name.
+ * @param {{ dryRun?: boolean, preview?: boolean, n?: boolean, format?: string }} options
  */
-async function runTask(name) {
+async function runTask(name, options = {}) {
   // Step 1: Find task metadata
   const meta = await findMetaByName(name);
   if (!meta) {
@@ -69,6 +74,14 @@ async function runTask(name) {
     console.error(chalk.red(`Error: Script file not found: ${meta.scriptPath}`));
     console.error(chalk.dim('The script may have been deleted. Reinstall the task.'));
     process.exit(1);
+  }
+
+  // Dry-run: render preview and exit early (after validation)
+  const isDryRun = options.dryRun || options.preview || options.n;
+  if (isDryRun) {
+    const { renderRunPreview } = await import('../renderers/dry-run-renderer.js');
+    await renderRunPreview(meta, options.format);
+    return;
   }
 
   // Step 4: Execute

@@ -70,8 +70,7 @@ Chain 3 tasks: Claude reviews code at 10 PM, Aider applies fixes at midnight, th
 - [Command Hub](#command-hub)
 - [Data Directory Structure](#data-directory-structure)
 - [Platform Support](#platform-support)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [Contributing & Community](#contributing--community)
 - [License](#license)
 
 ## Installation
@@ -788,122 +787,15 @@ autoshell hub logout  # Removes saved token
 - **Unicode task names**: Non-ASCII characters are stripped from task IDs (file names use kebab-case)
 - **Concurrent installs**: Installing the same task concurrently may cause race conditions
 
-## Troubleshooting
+## Contributing & Community
 
-### Tasks Not Running During Sleep/Wake
+We welcome contributions! Check out these resources to get started:
 
-If your machine sleeps at scheduled task time, AutoShell's behavior depends on your OS:
-
-- **macOS**: launchd automatically runs missed tasks on wake (built-in, no config needed)
-- **Linux**: systemd catches up on wake via `Persistent=true` (built-in, no config needed)
-- **Windows**: Task Scheduler skips missed tasks unless `StartWhenAvailable` is enabled manually
-
-#### macOS Sleep Tip
-
-To ensure scheduled tasks run overnight without interruption:
-
-1. Open **System Settings** → **Energy Saver**
-2. Under "Power Adapter" or "Battery", find **"Prevent automatic sleeping when display is off"**
-3. Toggle **ON** if you want tasks to run while your machine sleeps
-
-This prevents your Mac from sleeping during scheduled task times, ensuring reliable execution.
-
-## Contributing
-
-### Development Setup
-
-```bash
-git clone https://github.com/vocweb/autoshell-cli.git
-cd autoshell-cli
-npm install
-npm link
-npm test
-```
-
-### Project Structure
-
-```
-src/
-├── index.js              # CLI entry point
-├── config/               # Config parsing, validation, global settings
-├── generators/           # Script generation (Bash, Bat)
-├── schedulers/           # OS schedulers (launchd, systemd, schtasks)
-├── cli-commands/         # Commander command handlers
-├── interactive/          # PTY runner, auto-responder, rate limit
-├── terminal/             # Terminal launcher
-├── logging/              # Task logger, log rotation
-├── notifications/        # Slack, Discord, Email, Webhook
-├── hub/                  # Command Hub client
-└── utils/                # Paths, platform, task-id, metadata
-__tests__/                # Test suites (Node.js built-in test runner)
-```
-
-### Commit Convention
-
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: add new feature
-fix: resolve bug in parser
-docs: update README
-refactor: simplify script generator
-test: add scheduler tests
-chore: update dependencies
-```
-
-### Running Tests
-
-```bash
-npm test                  # Run all tests
-npm run test:verbose      # Verbose output with spec reporter
-```
-
-### Reporting Bugs
-
-When filing an issue, please include:
-- Your OS and version (e.g., macOS 15.2, Ubuntu 24.04)
-- Node.js version (`node --version`)
-- AutoShell version (`autoshell --version`)
-- Steps to reproduce the issue
-- Expected vs actual behavior
-- Relevant config file (with secrets redacted)
-
-### Questions & Ideas
-
-Not sure where to start? Have a feature idea? Join [GitHub Discussions](https://github.com/vocweb/autoshell-cli/discussions) — we'll help you find the right issue or refine your proposal.
-
-### Pull Request Process
-
-1. Fork the repo
-2. Create a feature branch from `develop`
-3. Implement changes with tests
-4. Ensure `npm test` passes (all tests must pass)
-5. Submit PR to the `develop` branch
-
-### Code Style
-
-- ESM modules (`import`/`export`)
-- Node.js >= 22 features allowed
-- Keep files under 200 lines
-- Use kebab-case for file names
-- English comments for all public functions
-
-### Branch Strategy
-
-- `master` — stable releases
-- `develop` — integration branch
-- `feature/*` — feature branches (PR to develop)
-
-## Security
-
-If you discover a security vulnerability, please **do not** open a public issue. Instead, email [chutien@gmail.com](mailto:chutien@gmail.com) with details. We'll respond within 48 hours.
-
-### Best Practices
-
-- Never commit secrets (API keys, tokens) in config files — use environment variable references (`${VAR}`) instead
-- AutoShell stores metadata and scripts in `~/.autoshell/` with restrictive file permissions
-- Generated expect scripts use `umask 077` for temporary files
-- macOS quarantine attributes are automatically removed from generated scripts to prevent Gatekeeper popups
+- **[Contribution Guidelines](https://github.com/vocweb/autoshell-cli/wiki/Contribution-Guidelines)** — how to contribute, development setup, project structure
+- **[Pull Request Requirements](https://github.com/vocweb/autoshell-cli/wiki/Pull-Request-Requirements)** — branch strategy, code style, PR checklist
+- **[Issue Guidelines](https://github.com/vocweb/autoshell-cli/wiki/Issue-Guidelines)** — how to report bugs and request features
+- **[FAQ & Troubleshooting](https://github.com/vocweb/autoshell-cli/wiki/FAQ)** — common questions and solutions
+- **[Report Security Vulnerabilities](https://github.com/vocweb/autoshell-cli/wiki/Report-Security-Vulnerabilities)** — responsible disclosure process
 
 ## License
 
