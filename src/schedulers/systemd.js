@@ -129,12 +129,14 @@ function generateService(unitName, record, scriptPath, logDir) {
   lines.push('Type=oneshot');
 
   // Launch in terminal if configured, else run directly
-  if (record.terminal && record.terminal.new_window !== false) {
+  // headless: run script directly — systemd captures stdout/stderr/exit code
+  const isHeadless = record.terminal?.headless === true;
+  if (isHeadless || !record.terminal?.new_window) {
+    lines.push(`ExecStart=/bin/bash ${scriptPath}`);
+  } else {
     const bin = resolveLinuxTerminal(record.terminal.program);
     const termArg = bin === 'gnome-terminal' ? '--' : '-e';
     lines.push(`ExecStart=${bin} ${termArg} /bin/bash ${scriptPath}`);
-  } else {
-    lines.push(`ExecStart=/bin/bash ${scriptPath}`);
   }
 
   // Working directory — use HOME to avoid permission issues with protected dirs.

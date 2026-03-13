@@ -112,21 +112,28 @@ function generatePlist(label, record, scriptPath, logDir) {
   // Label
   addKeyString(lines, 'Label', label);
 
-  // Program arguments — open in terminal app if configured, else run directly
+  // Program arguments — headless, terminal, or direct
   lines.push('  <key>ProgramArguments</key>');
   lines.push('  <array>');
-  if (record.terminal && record.terminal.new_window !== false) {
-    // Launch script inside a terminal application using macOS `open -a`
+
+  const isHeadless = record.terminal?.headless === true;
+  const hasTerminal = record.terminal && record.terminal.new_window !== false;
+
+  if (isHeadless || !hasTerminal) {
+    // Headless: launchd runs script directly — captures stdout/stderr/exit code
+    lines.push('    <string>/bin/bash</string>');
+    lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
+  } else {
+    // Terminal: open in configured terminal app with --args for reliable execution
     const app = resolveTerminalApp(record.terminal.program);
     lines.push('    <string>/usr/bin/open</string>');
     lines.push('    <string>-a</string>');
     lines.push(`    <string>${escapeXml(app)}</string>`);
     lines.push('    <string>-n</string>');
-    lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
-  } else {
-    lines.push('    <string>/bin/bash</string>');
+    lines.push('    <string>--args</string>');
     lines.push(`    <string>${escapeXml(scriptPath)}</string>`);
   }
+
   lines.push('  </array>');
 
   // Schedule

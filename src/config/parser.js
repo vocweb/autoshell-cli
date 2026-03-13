@@ -175,6 +175,16 @@ function applyDefaults(config) {
   // Terminal defaults
   if (config.settings.terminal) {
     config.settings.terminal.new_window ??= true;
+    config.settings.terminal.headless ??= false;
+  }
+
+  // Propagate settings.terminal to records that lack terminal config
+  if (config.settings.terminal) {
+    for (const record of config.records) {
+      if (!record.terminal) {
+        record.terminal = { ...config.settings.terminal };
+      }
+    }
   }
 
   for (const record of config.records) {
@@ -214,6 +224,12 @@ function applyDefaults(config) {
     if (record.notifications) {
       record.notifications.on_success ??= false;
       record.notifications.on_failure ??= true;
+    }
+
+    // record-level terminal defaults
+    if (record.terminal) {
+      record.terminal.new_window ??= true;
+      record.terminal.headless ??= false;
     }
   }
 }

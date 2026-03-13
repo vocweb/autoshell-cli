@@ -86,6 +86,9 @@ function validateSettings(settings, errors) {
     if (t.new_window !== undefined && typeof t.new_window !== 'boolean') {
       errors.push('settings.terminal.new_window: Must be a boolean');
     }
+    if (t.headless !== undefined && typeof t.headless !== 'boolean') {
+      errors.push('settings.terminal.headless: Must be a boolean');
+    }
   }
 }
 
@@ -141,6 +144,17 @@ function validateRecord(record, prefix, errors) {
   // notifications — optional
   if (record.notifications) {
     validateNotifications(record.notifications, prefix, errors);
+  }
+
+  // terminal — optional record-level override
+  if (record.terminal) {
+    if (typeof record.terminal !== 'object') {
+      errors.push(`${prefix}.terminal: Must be an object`);
+    } else {
+      if (record.terminal.headless !== undefined && typeof record.terminal.headless !== 'boolean') {
+        errors.push(`${prefix}.terminal.headless: Must be a boolean`);
+      }
+    }
   }
 }
 

@@ -14,10 +14,11 @@
  * @returns {string} Script content ready to write to file.
  */
 export function generateScript(record, platform) {
+  const headless = record.terminal?.headless === true;
   if (platform === 'win32') {
     return generateBat(record);
   }
-  return generateBash(record);
+  return generateBash(record, headless);
 }
 
 /**
@@ -33,7 +34,7 @@ export function generateScript(record, platform) {
  * @param {object} record - Parsed and validated config record.
  * @returns {string} Bash script content as a string.
  */
-function generateBash(record) {
+function generateBash(record, headless = false) {
   const lines = [];
   const timestamp = new Date().toISOString();
 
@@ -57,6 +58,19 @@ function generateBash(record) {
   // Log helper
   lines.push('log() { echo "[$(date +%H:%M:%S)] $*"; }');
   lines.push('');
+
+  // Headless mode: tee logging + exit code tracking
+  if (headless) {
+    const taskSlug = escapeShell(record.name?.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase() || 'unknown');
+    lines.push('# Headless mode: tee logging + exit code tracking');
+    lines.push(`_TASK_ID="${taskSlug}"`);
+    lines.push('_LOG_DIR="$HOME/.autoshell/logs/$_TASK_ID"');
+    lines.push('mkdir -p "$_LOG_DIR"');
+    lines.push('_LOG_FILE="$_LOG_DIR/run-$(date +%Y%m%dT%H%M%S).log"');
+    lines.push('exec > >(stdbuf -oL tee -a "$_LOG_FILE") 2>&1');
+    lines.push('trap \'echo $? > "$_LOG_DIR/last_exit_code"\' EXIT');
+    lines.push('');
+  }
 
   // Working directory
   if (record.working_dir) {
@@ -94,7 +108,7 @@ function generateBash(record) {
   if (record.interactive && record.interactive.length > 0) {
     for (const block of record.interactive) {
       lines.push(`# Interactive: ${block.program}`);
-      lines.push(...generateBashInteractive(block));
+      lines.push(...generateBashInteractive(block, headless));
       lines.push('');
     }
   }
@@ -128,7 +142,7 @@ function generateBash(record) {
  * @param {Array<{prompt: string, response: string}>} [block.auto_responses] - Prompt/response pairs.
  * @returns {string[]} Array of Bash script lines for this interactive block.
  */
-function generateBashInteractive(block) {
+function generateBashInteractive(block, headless = false) {
   const lines = [];
   // Quote each arg with Tcl curly braces for expect spawn context
   const spawnArgs = block.args && block.args.length > 0
@@ -181,16 +195,29 @@ function generateBashInteractive(block) {
   }
 
   // interact hands control to user — program stays alive
-  lines.push('interact');
+  // headless: expect eof waits for process to finish naturally (no terminal)
+  if (headless) {
+    lines.push('set timeout -1');
+    lines.push('expect eof');
+    lines.push('catch wait result');
+    lines.push('exit [lindex $result 3]');
+  } else {
+    lines.push('interact');
+  }
   lines.push('EXPECT_SCRIPT');
   lines.push('  )');
   lines.push('  (set +e; expect -f "$_EXPECT_SCRIPT"; _EC=$?; rm -f "$_EXPECT_SCRIPT"; exit $_EC)');
 
-  // Fallback: no expect — process substitution keeps stdin open
-  // sleep 5 gives program time to initialize before receiving input
+  // Fallback: no expect
   lines.push('else');
   const inputStr = block.inputs.join('\\n');
-  lines.push(`  "$_PROG_PATH"${fallbackArgs} < <(sleep 5; echo -e "${escapeShell(inputStr)}"; cat)`);
+  if (headless) {
+    // Headless: pipe input then let program exit (no cat to keep stdin open)
+    lines.push(`  echo -e "${escapeShell(inputStr)}" | "$_PROG_PATH"${fallbackArgs}`);
+  } else {
+    // Terminal: keep stdin open for interaction
+    lines.push(`  "$_PROG_PATH"${fallbackArgs} < <(sleep 5; echo -e "${escapeShell(inputStr)}"; cat)`);
+  }
   lines.push('fi');
 
   return lines;
